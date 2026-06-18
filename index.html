@@ -303,7 +303,12 @@ async function reload(){
   if(!API_URL){ document.getElementById('list').innerHTML=`<div class="state"><div class="ic">⚙️</div><h3>Falta conectar</h3><p>Configura la URL del Web App en ⚙.</p></div>`; return; }
   try{
     const j = await apiPost({action:'data'});
-    if(!j.ok){ if(j.auth){ toast('Sesión expirada, vuelve a entrar'); setTimeout(logout,1200); } throw new Error(j.error||'Error'); }
+    if(!j.ok){
+      const e=(j.error||'Error');
+      if(/no autoriz/i.test(e)){ document.getElementById('list').innerHTML=`<div class="state"><div class="ic">🔒</div><h3>Acceso no autorizado</h3><p>${e}.<br><br>Pide que registren tu correo en el sistema para poder entrar.</p></div>`; return; }
+      if(/expir|sesi[oó]n|token/i.test(e)){ toast('Sesión expirada, vuelve a entrar'); setTimeout(logout,1500); return; }
+      throw new Error(e);
+    }
     state.rol = j.rol; state.asesora = j.asesora; state.nombre = j.nombre||state.nombre;
     document.getElementById('meName').textContent = state.nombre;
     document.getElementById('firstName').textContent = (state.nombre||'').split(' ')[0];
