@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0e1116">
+<title>Novalyx CRM · Seguimiento</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --bg:#0e1116; --bg2:#12171e; --panel:#171d26; --panel2:#1e2530; --line:#2a323d;
+  --txt:#eef2f7; --muted:#8b97a7; --soft:#b3bdca;
+  --gold:#c9a96a; --gold2:#e4ca8f; --rose:#e09bb4; --green:#56c596; --amber:#e8b964; --red:#e98080; --blue:#73a9f0; --teal:#5fc6c0; --purple:#b58cf0;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:
+  radial-gradient(1200px 600px at 100% -10%,rgba(201,169,106,.10),transparent 60%),
+  radial-gradient(900px 500px at -10% 110%,rgba(224,155,180,.08),transparent 60%),
+  var(--bg);color:var(--txt);min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased}
+.app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;padding-bottom:84px}
+::-webkit-scrollbar{width:0}
+button{font-family:inherit;cursor:pointer;border:none}
+.hidden{display:none!important}
+
+/* LOGIN */
+.login{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px;text-align:center}
+.logo{font-size:36px;letter-spacing:6px;font-weight:300}
+.logo b{font-weight:700;color:var(--gold)}
+.login .tag{color:var(--muted);font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-top:6px}
+.login h2{margin:46px 0 6px;font-weight:600;font-size:20px}
+.login p{color:var(--muted);font-size:13.5px;margin-bottom:26px;max-width:300px}
+#gbtn{display:flex;justify-content:center;min-height:44px}
+.login .demo,.login .cfg{margin-top:26px;font-size:12.5px;color:var(--muted);text-decoration:underline;background:none}
+.login .warn{background:rgba(232,185,100,.12);border:1px solid rgba(232,185,100,.3);color:var(--amber);font-size:12.5px;padding:12px 14px;border-radius:12px;max-width:320px;margin-bottom:8px}
+.demoPick{display:grid;gap:10px;width:100%;max-width:300px;margin-top:10px}
+.asesora-btn{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px;display:flex;align-items:center;gap:12px;color:var(--txt)}
+.asesora-btn:hover{border-color:var(--gold)}
+.asesora-btn .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#10141a;font-size:14px;flex-shrink:0}
+
+/* HEADER */
+.hdr{position:sticky;top:0;z-index:30;background:rgba(14,17,22,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:14px 18px;display:flex;align-items:center;gap:12px}
+.hdr .brand{font-size:17px;letter-spacing:2px;font-weight:300}
+.hdr .brand b{font-weight:700;color:var(--gold)}
+.hdr .me{margin-left:auto;display:flex;align-items:center;gap:10px}
+.hdr .me .info{text-align:right;line-height:1.2}
+.hdr .me .info .n{font-size:13px;font-weight:600}
+.hdr .me .info .d{font-size:11px;color:var(--muted)}
+.hdr .me .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#10141a;font-size:14px;background-size:cover;background-position:center}
+
+.demo-banner{background:rgba(115,169,240,.12);border:1px solid rgba(115,169,240,.3);color:var(--blue);font-size:12px;text-align:center;padding:8px;border-radius:10px;margin:10px 18px 0}
+
+/* HERO */
+.hero{padding:18px 18px 6px}
+.hello{font-size:21px;font-weight:700}
+.hello span{color:var(--gold2)}
+.subhello{color:var(--muted);font-size:13px;margin-top:2px}
+.dirfilter{margin-top:12px}
+.dirfilter select{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:11px 14px;font-size:14px;appearance:none}
+.progress-card{margin:14px 0 4px;background:linear-gradient(135deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:20px;padding:18px;display:flex;align-items:center;gap:18px;box-shadow:var(--shadow)}
+.ring{position:relative;width:74px;height:74px;flex-shrink:0}
+.ring svg{transform:rotate(-90deg)}
+.ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
+.progress-card .ptxt .pt{font-weight:600;font-size:15px}
+.progress-card .ptxt .ps{color:var(--muted);font-size:12.5px;margin-top:3px}
+
+/* KPIS */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:14px 18px 4px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 8px;text-align:center}
+.kpi .v{font-size:19px;font-weight:700}
+.kpi .l{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:.3px}
+.kpi.hot .v{color:var(--amber)} .kpi.due .v{color:var(--red)} .kpi.win .v{color:var(--green)}
+
+/* TABS */
+.tabs{display:flex;gap:8px;padding:14px 18px 6px;position:sticky;top:64px;z-index:20;background:linear-gradient(var(--bg),rgba(14,17,22,.6))}
+.tab{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;color:var(--muted);font-size:13.5px;font-weight:600}
+.tab.active{background:var(--gold);color:#10141a;border-color:var(--gold)}
+.search{padding:4px 18px 0}
+.search input{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px;color:var(--txt);font-size:14px}
+
+/* CARDS */
+.list{padding:10px 18px 20px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow);border-left:4px solid var(--gold);animation:rise .3s both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card .top{display:flex;align-items:flex-start;gap:10px}
+.card .nm{font-size:16px;font-weight:700}
+.card .proc{font-size:13px;color:var(--gold2);margin-top:2px}
+.card .badge{margin-left:auto;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap}
+.b-seg{background:rgba(232,185,100,.16);color:var(--amber)}
+.b-venc{background:rgba(233,128,128,.16);color:var(--red)}
+.b-cerr{background:rgba(86,197,150,.16);color:var(--green)}
+.b-desc{background:rgba(139,151,167,.16);color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin:11px 0 4px}
+.chip{font-size:11.5px;color:var(--soft);background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px}
+.chip b{color:var(--txt)}
+.dir-ase{font-size:11px;color:var(--purple);font-weight:600}
+.accion{font-size:12.5px;color:var(--blue);font-weight:600;margin:8px 0 0;display:flex;align-items:center;gap:7px}
+.msg{background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:12px;padding:12px;margin-top:11px;font-size:13.5px;color:var(--soft);line-height:1.5}
+.row-actions{display:flex;gap:9px;margin-top:13px}
+.btn{flex:1;border-radius:12px;padding:12px;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;transition:.15s}
+.btn:active{transform:scale(.97)}
+.btn.wa{background:#25D366;color:#06231a}
+.btn.copy{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+.btn.done{background:var(--gold);color:#10141a}
+.btn.done.ok{background:var(--green);color:#06231a}
+.tools{display:flex;gap:9px;margin-top:10px}
+.tools select,.tools .pdfbtn{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--soft);border-radius:11px;padding:10px;font-size:12.5px;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;appearance:none}
+.notes{width:100%;margin-top:10px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:10px 12px;font-size:13px;resize:vertical;height:40px;font-family:inherit}
+
+.state{text-align:center;padding:60px 24px;color:var(--muted)}
+.state .ic{font-size:46px;margin-bottom:14px}
+.state h3{color:var(--txt);font-weight:700;font-size:18px;margin-bottom:6px}
+.spinner{width:40px;height:40px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;margin:0 auto 16px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.botnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;z-index:40;background:rgba(18,23,30,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;padding:8px 10px 14px}
+.botnav a{flex:1;text-align:center;color:var(--muted);font-size:10.5px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px}
+.botnav a .bi{font-size:20px}
+.botnav a.active{color:var(--gold2)}
+
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--gold);color:#10141a;font-weight:700;font-size:13.5px;padding:11px 20px;border-radius:30px;box-shadow:var(--shadow);opacity:0;transition:.3s;z-index:60;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px;z-index:70}
+.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;max-width:380px;width:100%}
+.modal h3{margin-bottom:6px}.modal p{color:var(--muted);font-size:13px;margin-bottom:14px}
+.modal label{font-size:12px;color:var(--muted);display:block;margin:10px 0 5px}
+.modal input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font-size:13px}
+.modal .actions{display:flex;gap:10px;margin-top:18px}
+.modal .actions button{flex:1;border-radius:11px;padding:11px;font-weight:700;font-size:13.5px}
+.modal .save{background:var(--gold);color:#10141a}.modal .cancel{background:var(--panel2);color:var(--soft);border:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="login" id="login">
+  <div class="logo">NOVA<b>LYX</b></div>
+  <div class="tag">CRM · Seguimiento</div>
+  <h2>Inicia sesión</h2>
+  <p>Entra con tu cuenta de Google de Novalyx para ver tu seguimiento del día.</p>
+  <div id="gwarn" class="warn hidden">Falta configurar el Client ID de Google. Mientras tanto puedes ver la demostración.</div>
+  <div id="gbtn"></div>
+  <button class="demo" onclick="showDemoPick()">Ver demostración (sin conexión)</button>
+  <div class="demoPick hidden" id="demoPick"></div>
+  <button class="cfg" onclick="openConfig()">⚙ Configurar conexión</button>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app hidden" id="app">
+  <div class="hdr">
+    <div class="brand">NOVA<b>LYX</b></div>
+    <div class="me">
+      <div class="info"><div class="n" id="meName">—</div><div class="d" id="meDate">—</div></div>
+      <div class="av" id="meAv" onclick="logout()">—</div>
+    </div>
+  </div>
+
+  <div id="demoBanner" class="demo-banner hidden">Modo demostración — datos de ejemplo</div>
+
+  <div class="hero">
+    <div class="hello">Hola, <span id="firstName">—</span> 🌷</div>
+    <div class="subhello" id="heroSub">Tu seguimiento de hoy</div>
+    <div class="dirfilter hidden" id="dirFilter">
+      <select id="dirSelect" onchange="render()"><option value="">Todas las asesoras</option></select>
+    </div>
+    <div class="progress-card">
+      <div class="ring">
+        <svg width="74" height="74"><circle cx="37" cy="37" r="32" stroke="#2a323d" stroke-width="7" fill="none"/>
+          <circle id="ringFill" cx="37" cy="37" r="32" stroke="url(#g)" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"/>
+          <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9a96a"/><stop offset="1" stop-color="#e09bb4"/></linearGradient></defs>
+        </svg>
+        <div class="pct" id="ringPct">0%</div>
+      </div>
+      <div class="ptxt"><div class="pt" id="progTitle">Cargando…</div><div class="ps" id="progSub">Preparando tu día</div></div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi hot"><div class="v" id="kHoy">0</div><div class="l">Hoy</div></div>
+    <div class="kpi"><div class="v" id="kSeg">0</div><div class="l">En seg.</div></div>
+    <div class="kpi due"><div class="v" id="kVenc">0</div><div class="l">Vencidas</div></div>
+    <div class="kpi win"><div class="v" id="kCerr">0</div><div class="l">Cierres</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabDia" onclick="setTab('dia')">Mi día</button>
+    <button class="tab" id="tabTodas" onclick="setTab('todas')">Pacientes</button>
+  </div>
+  <div class="search hidden" id="searchWrap"><input id="searchInput" placeholder="🔍 Buscar paciente o procedimiento" oninput="render()"></div>
+  <div class="list" id="list"></div>
+</div>
+
+<div class="botnav hidden" id="botnav">
+  <a class="active" id="nDia" onclick="setTab('dia')"><span class="bi">☀</span>Mi día</a>
+  <a id="nTodas" onclick="setTab('todas')"><span class="bi">❤</span>Pacientes</a>
+  <a onclick="reload()"><span class="bi">↻</span>Actualizar</a>
+  <a onclick="logout()"><span class="bi">⇄</span>Salir</a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal hidden" id="configModal">
+  <div class="box">
+    <h3>Conexión con el motor</h3>
+    <p>Pega la URL del Web App de Apps Script y el Client ID de Google. Si los dejas vacíos, verás el modo demo.</p>
+    <label>URL del Web App (/exec)</label><input id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    <label>Google Client ID</label><input id="cfgClient" placeholder="....apps.googleusercontent.com">
+    <div class="actions"><button class="cancel" onclick="closeConfig()">Cancelar</button><button class="save" onclick="saveConfig()">Guardar</button></div>
+  </div>
+</div>
+
+<script>
+// ============ CONFIG ============
+// Rellena estos dos o usa el botón ⚙. Si quedan vacíos, corre en DEMO.
+let API_URL          = localStorage.getItem('nvx_api_url')   || "https://script.google.com/macros/s/AKfycbz1R3FQEwSTIIq2gCqth6BAFOPJh1wRT7AzxKFE7BQMR-aQ74Zf05t7cZww8Gmjb7DY/exec";
+let GOOGLE_CLIENT_ID = localStorage.getItem('nvx_client_id') || "634352012698-b47t3ed3tvd4d1g7l30l68bd6e5s0ri4.apps.googleusercontent.com";
+
+const ASESORAS = ['Claudia Falcón','Susana Palacios','Anahí Alvarado','Valeria Lima'];
+const AV_COLORS = {
+  'Claudia Falcón':'linear-gradient(135deg,#c9a96a,#e09bb4)','Susana Palacios':'linear-gradient(135deg,#5fc6c0,#73a9f0)',
+  'Anahí Alvarado':'linear-gradient(135deg,#e09bb4,#b58cf0)','Valeria Lima':'linear-gradient(135deg,#56c596,#c9a96a)','Director':'linear-gradient(135deg,#c9a96a,#73a9f0)'
+};
+const MOTIVOS = ['Precio','Miedo / dudas','Comparando','Decisión con terceros','Tiempos'];
+let state = { idToken:null, email:null, nombre:null, picture:null, rol:'asesora', asesora:null, rows:[], tab:'dia', demo:false };
+
+// ============ ARRANQUE ============
+window.onload = function(){
+  // intento de sesión recordada (demo)
+  const demoName = localStorage.getItem('nvx_demo_asesora');
+  if(demoName){ enterDemo(demoName); return; }
+  initGoogle();
+};
+function initGoogle(){
+  if(!GOOGLE_CLIENT_ID){ document.getElementById('gwarn').classList.remove('hidden'); return; }
+  const tryInit = setInterval(function(){
+    if(window.google && google.accounts && google.accounts.id){
+      clearInterval(tryInit);
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onCredential, auto_select:true });
+      google.accounts.id.renderButton(document.getElementById('gbtn'),
+        { theme:'filled_black', size:'large', shape:'pill', text:'signin_with', locale:'es', width:280 });
+      google.accounts.id.prompt();
+    }
+  }, 120);
+}
+function parseJwt(t){
+  try{ return JSON.parse(decodeURIComponent(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''))); }
+  catch(e){ return {}; }
+}
+function onCredential(resp){
+  const jwt = parseJwt(resp.credential);
+  state.idToken = resp.credential;
+  state.email = jwt.email; state.nombre = jwt.name || jwt.email; state.picture = jwt.picture;
+  enterApp();
+  reload();
+}
+
+// ============ DEMO ============
+function showDemoPick(){
+  const d = document.getElementById('demoPick');
+  d.classList.toggle('hidden');
+  d.innerHTML = ['Director'].concat(ASESORAS).map(a=>{
+    const ini = a==='Director'?'MS':a.split(' ').map(x=>x[0]).slice(0,2).join('');
+    return `<button class="asesora-btn" onclick="enterDemo('${a}')"><div class="av" style="background:${AV_COLORS[a]}">${ini}</div><div style="text-align:left"><div style="font-weight:600">${a}</div></div></button>`;
+  }).join('');
+}
+function enterDemo(name){
+  state.demo = true;
+  localStorage.setItem('nvx_demo_asesora', name);
+  state.rol = (name==='Director')?'director':'asesora';
+  state.asesora = (name==='Director')?null:name;
+  state.nombre = name; state.email='demo@novalyx';
+  enterApp(); reload();
+}
+
+// ============ ENTRAR ============
+function enterApp(){
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('botnav').classList.remove('hidden');
+  const nombre = state.nombre||'';
+  document.getElementById('meName').textContent = nombre;
+  document.getElementById('firstName').textContent = nombre.split(' ')[0];
+  const av = document.getElementById('meAv');
+  if(state.picture){ av.style.backgroundImage='url('+state.picture+')'; av.textContent=''; }
+  else { av.textContent = nombre.split(' ').map(x=>x[0]).slice(0,2).join(''); av.style.background = AV_COLORS[state.asesora]||AV_COLORS['Director']; }
+  const d=new Date(); document.getElementById('meDate').textContent = d.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
+}
+function logout(){
+  if(window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+  localStorage.removeItem('nvx_demo_asesora');
+  location.reload();
+}
+
+// ============ DATOS ============
+async function reload(){
+  showLoading();
+  if(state.demo){
+    document.getElementById('demoBanner').classList.remove('hidden');
+    state.rows = demoRows();
+    afterData(); return;
+  }
+  if(!API_URL){ document.getElementById('list').innerHTML=`<div class="state"><div class="ic">⚙️</div><h3>Falta conectar</h3><p>Configura la URL del Web App en ⚙.</p></div>`; return; }
+  try{
+    const j = await apiPost({action:'data'});
+    if(!j.ok){ if(j.auth){ toast('Sesión expirada, vuelve a entrar'); setTimeout(logout,1200); } throw new Error(j.error||'Error'); }
+    state.rol = j.rol; state.asesora = j.asesora; state.nombre = j.nombre||state.nombre;
+    document.getElementById('meName').textContent = state.nombre;
+    document.getElementById('firstName').textContent = (state.nombre||'').split(' ')[0];
+    state.rows = j.rows||[];
+    afterData();
+  }catch(err){
+    document.getElementById('list').innerHTML=`<div class="state"><div class="ic">⚠️</div><h3>No pude conectar</h3><p>${err.message}</p></div>`;
+  }
+}
+function afterData(){
+  // Director: mostrar filtro de asesoras
+  if(state.rol==='director'){
+    document.getElementById('dirFilter').classList.remove('hidden');
+    document.getElementById('heroSub').textContent='Vista de Director · todo el equipo';
+    const sel=document.getElementById('dirSelect');
+    const names=[...new Set(state.rows.map(r=>r.asesora).filter(Boolean))].sort();
+    sel.innerHTML='<option value="">Todas las asesoras</option>'+names.map(n=>`<option>${n}</option>`).join('');
+  }
+  render();
+}
+async function apiPost(body){
+  if(state.demo) return {ok:true};
+  body.idToken = state.idToken;
+  const r = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+  return await r.json();
+}
+
+// ============ RENDER ============
+function showLoading(){ document.getElementById('list').innerHTML=`<div class="state"><div class="spinner"></div><p>Cargando tu seguimiento…</p></div>`; }
+function setTab(t){
+  state.tab=t;
+  document.getElementById('tabDia').classList.toggle('active',t==='dia');
+  document.getElementById('tabTodas').classList.toggle('active',t==='todas');
+  document.getElementById('nDia').classList.toggle('active',t==='dia');
+  document.getElementById('nTodas').classList.toggle('active',t==='todas');
+  document.getElementById('searchWrap').classList.toggle('hidden',t==='dia');
+  render();
+}
+function estadoBadge(e){
+  if(e==='Vencida')return '<span class="badge b-venc">⏰ Vencida</span>';
+  if(e==='Cerrada')return '<span class="badge b-cerr">✓ Cerrada</span>';
+  if(e==='Descartada')return '<span class="badge b-desc">Descartada</span>';
+  return '<span class="badge b-seg">● En seguimiento</span>';
+}
+function money(n){return '$'+Number(n||0).toLocaleString('es-MX');}
+function visibles(){
+  let rows=state.rows;
+  if(state.rol==='director'){ const f=document.getElementById('dirSelect').value; if(f) rows=rows.filter(r=>r.asesora===f); }
+  return rows;
+}
+function render(){
+  const all=visibles();
+  const hoy=all.filter(r=>r.accionHoy&&(r.estado==='En seguimiento'||r.estado==='Vencida'));
+  document.getElementById('kHoy').textContent=hoy.length;
+  document.getElementById('kSeg').textContent=all.filter(r=>r.estado==='En seguimiento').length;
+  document.getElementById('kVenc').textContent=all.filter(r=>r.estado==='Vencida').length;
+  document.getElementById('kCerr').textContent=all.filter(r=>r.estado==='Cerrada').length;
+
+  const done=getDone(); const tot=hoy.length, dn=hoy.filter(r=>done.includes(r.id)).length;
+  const pct=tot?Math.round(dn/tot*100):0;
+  document.getElementById('ringPct').textContent=pct+'%';
+  document.getElementById('ringFill').style.strokeDashoffset=201-(201*pct/100);
+  document.getElementById('progTitle').textContent=tot?`${dn} de ${tot} contactos hechos`:'Sin pendientes hoy';
+  document.getElementById('progSub').textContent=tot?(pct===100?'¡Lo lograste! 🎉':'Tú puedes, sigue así'):'Disfruta tu día';
+
+  let rows;
+  if(state.tab==='dia'){ rows=hoy; }
+  else{
+    const q=(document.getElementById('searchInput').value||'').toLowerCase();
+    rows=all.filter(r=>!q||(r.paciente+' '+r.procedimiento).toLowerCase().includes(q));
+    const ord={'Vencida':0,'En seguimiento':1,'Cerrada':2,'Descartada':3};
+    rows.sort((a,b)=>(ord[a.estado]??9)-(ord[b.estado]??9)||a.dias-b.dias);
+  }
+  const list=document.getElementById('list');
+  if(rows.length===0){
+    list.innerHTML=state.tab==='dia'
+      ?`<div class="state"><div class="ic">🎉</div><h3>¡Día completo!</h3><p>No hay pacientes pendientes de contactar hoy. Buen trabajo.</p></div>`
+      :`<div class="state"><div class="ic">🔍</div><h3>Sin resultados</h3><p>No hay pacientes que coincidan.</p></div>`;
+    return;
+  }
+  list.innerHTML=rows.map(r=>cardHTML(r,done.includes(r.id))).join('');
+}
+function cardHTML(r,isDone){
+  const showMsg=r.mensaje&&(r.estado==='En seguimiento'||r.estado==='Vencida');
+  const active=(r.estado==='En seguimiento'||r.estado==='Vencida');
+  const dir=state.rol==='director';
+  return `<div class="card" style="border-left-color:${r.estado==='Vencida'?'var(--red)':r.estado==='Cerrada'?'var(--green)':'var(--gold)'}">
+    <div class="top"><div><div class="nm">${r.paciente}</div><div class="proc">${r.procedimiento}</div>${dir&&r.asesora?`<div class="dir-ase">👤 ${r.asesora}</div>`:''}</div>${estadoBadge(r.estado)}</div>
+    <div class="meta">
+      <span class="chip">💰 <b>${money(r.monto)}</b></span><span class="chip">📅 <b>${r.dias}</b> días</span>
+      ${r.motivo?`<span class="chip">🎯 ${r.motivo}</span>`:''}${r.proximo&&!r.accionHoy?`<span class="chip">⏭ ${r.proximo}</span>`:''}
+    </div>
+    ${r.accionHoy?`<div class="accion">👉 ${r.accionHoy}</div>`:''}
+    ${showMsg?`<div class="msg" id="msg-${r.id}">${r.mensaje}</div>`:''}
+    ${active&&!dir?`
+    <div class="row-actions">
+      <button class="btn copy" onclick="copyMsg('${r.id}')">⧉ Copiar</button>
+      <a class="btn wa" href="${r.whatsapp}" target="_blank" rel="noopener">WhatsApp</a>
+      <button class="btn done ${isDone?'ok':''}" id="done-${r.id}" onclick="marcar('${r.id}')">${isDone?'✓ Hecho':'Contactado'}</button>
+    </div>
+    <div class="tools">
+      <select onchange="setMotivo('${r.id}',this.value)"><option value="">Motivo no-cierre…</option>${MOTIVOS.map(m=>`<option ${m===r.motivo?'selected':''}>${m}</option>`).join('')}</select>
+      ${r.pdf&&r.pdf!=='#'?`<a class="pdfbtn" href="${r.pdf}" target="_blank" rel="noopener">📄 PDF</a>`:''}
+    </div>
+    <textarea class="notes" placeholder="Notas rápidas…" onchange="setNotas('${r.id}',this.value)">${r.notas||''}</textarea>
+    `:`${r.notas?`<div class="msg" style="border-left-color:var(--muted)">📝 ${r.notas}</div>`:''}`}
+  </div>`;
+}
+
+// ============ ACCIONES ============
+function copyMsg(id){ const el=document.getElementById('msg-'+id); if(!el)return; navigator.clipboard.writeText(el.textContent).then(()=>toast('Mensaje copiado ✓')); }
+async function marcar(id){
+  const done=getDone(); const btn=document.getElementById('done-'+id);
+  if(!done.includes(id)){ done.push(id); setDone(done); btn.classList.add('ok'); btn.textContent='✓ Hecho'; toast('¡Contacto registrado! 💪');
+    await apiPost({action:'marcarContactado',id}); render(); }
+}
+async function setMotivo(id,motivo){ if(!motivo)return; const row=state.rows.find(r=>r.id===id); if(row)row.motivo=motivo; toast('Motivo guardado'); await apiPost({action:'setMotivo',id,motivo}); reload(); }
+async function setNotas(id,notas){ const row=state.rows.find(r=>r.id===id); if(row)row.notas=notas; await apiPost({action:'setNotas',id,notas}); toast('Nota guardada'); }
+
+function doneKey(){ return 'nvx_done_'+(state.email||state.asesora)+'_'+new Date().toISOString().slice(0,10); }
+function getDone(){ try{return JSON.parse(localStorage.getItem(doneKey())||'[]');}catch(e){return[];} }
+function setDone(a){ localStorage.setItem(doneKey(),JSON.stringify(a)); }
+
+let toastT; function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1800); }
+
+function openConfig(){ document.getElementById('cfgUrl').value=API_URL; document.getElementById('cfgClient').value=GOOGLE_CLIENT_ID; document.getElementById('configModal').classList.remove('hidden'); }
+function closeConfig(){ document.getElementById('configModal').classList.add('hidden'); }
+function saveConfig(){
+  API_URL=document.getElementById('cfgUrl').value.trim();
+  GOOGLE_CLIENT_ID=document.getElementById('cfgClient').value.trim();
+  localStorage.setItem('nvx_api_url',API_URL); localStorage.setItem('nvx_client_id',GOOGLE_CLIENT_ID);
+  closeConfig(); toast('Configuración guardada'); setTimeout(()=>location.reload(),800);
+}
+
+// ============ DEMO DATA ============
+function demoRows(){
+  return [
+    {id:'COT-0099',asesora:'Claudia Falcón',paciente:'Elizabeth Aparicio',procedimiento:'Deep Plane Lifting Hybrid MS®',monto:165000,dias:0,estado:'En seguimiento',motivo:'',accionHoy:'Día 0 · Agradecer visita + enviar cotización',proximo:'Hoy',whatsapp:'https://wa.me/18058732148',pdf:'#',notas:'',mensaje:'Hola Elizabeth 🌷 Fue un gusto conocerte en Novalyx. Te dejo el resumen de tu Deep Plane Lifting y tu cotización ($165,000, vigente hasta el 18 jul 2026). Cualquier duda, escríbeme directo.'},
+    {id:'COT-0090',asesora:'Susana Palacios',paciente:'Alan Christopher González',procedimiento:'Rinoplastía Ultrasónica',monto:86500,dias:2,estado:'En seguimiento',motivo:'Precio',accionHoy:'Día 2 · Abrir conversación de pago',proximo:'Hoy',whatsapp:'https://wa.me/525512345678',pdf:'#',notas:'',mensaje:'Alan, ¿pudiste revisar la cotización de tu Rinoplastía? Muchas pacientes lo hacen a meses sin intereses o con plan de apartado. ¿Te comparto las opciones?'},
+    {id:'COT-0079',asesora:'Anahí Alvarado',paciente:'Lucía García Gutiérrez',procedimiento:'Lipo Full Body + Mamoplastía',monto:193500,dias:7,estado:'En seguimiento',motivo:'Miedo / dudas',accionHoy:'Día 7 · Enviar prueba social',proximo:'Hoy',whatsapp:'https://wa.me/525587654321',pdf:'#',notas:'Le preocupa la recuperación',mensaje:'Te comparto historias de pacientes que tenían las mismas dudas antes de su procedimiento. Ver su antes y después y cómo vivieron la recuperación tranquiliza muchísimo.'},
+    {id:'COT-0069',asesora:'Valeria Lima',paciente:'Vania Becerril González',procedimiento:'Abdominoplastía + RibXcar',monto:180000,dias:14,estado:'En seguimiento',motivo:'Decisión con terceros',accionHoy:'Día 14 · Check-in cálido',proximo:'Hoy',whatsapp:'https://wa.me/525511223344',pdf:'#',notas:'',mensaje:'Hola Vania 🌷 ¿cómo vas con la decisión sobre tu Abdominoplastía? Recuerda que tu precio sigue protegido. Sin prisa, aquí sigo.'},
+    {id:'COT-0058',asesora:'Claudia Falcón',paciente:'Mariana Lugo',procedimiento:'Implantes de Glúteos',monto:141500,dias:33,estado:'Vencida',motivo:'Tiempos',accionHoy:'',proximo:'Nurture mensual',whatsapp:'https://wa.me/525599887766',pdf:'#',notas:'Quería para diciembre',mensaje:''},
+    {id:'COT-0051',asesora:'Susana Palacios',paciente:'Regina Madrigal',procedimiento:'Mastopexia con Implantes',monto:127000,dias:21,estado:'Cerrada',motivo:'Precio',accionHoy:'',proximo:'',whatsapp:'https://wa.me/525500112233',pdf:'#',notas:'¡Cerró! Cirugía agendada',mensaje:''},
+  ].filter(r=> state.rol==='director' ? true : r.asesora===state.asesora);
+}
+</script>
+</body>
+</html>
