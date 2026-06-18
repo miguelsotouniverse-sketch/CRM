@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0e1116">
-<title>Novalyx CRM · Seguimiento</title>
+<title>Dr. Miguel Soto · CRM Seguimiento</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
@@ -25,7 +25,7 @@ button{font-family:inherit;cursor:pointer;border:none}
 
 /* LOGIN */
 .login{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px;text-align:center}
-.logo{font-size:36px;letter-spacing:6px;font-weight:300}
+.logo{font-size:30px;letter-spacing:1px;font-weight:300}
 .logo b{font-weight:700;color:var(--gold)}
 .login .tag{color:var(--muted);font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-top:6px}
 .login h2{margin:46px 0 6px;font-weight:600;font-size:20px}
@@ -135,10 +135,10 @@ button{font-family:inherit;cursor:pointer;border:none}
 
 <!-- ============ LOGIN ============ -->
 <div class="login" id="login">
-  <div class="logo">NOVA<b>LYX</b></div>
+  <div class="logo">Dr. Miguel <b>Soto</b></div>
   <div class="tag">CRM · Seguimiento</div>
   <h2>Inicia sesión</h2>
-  <p>Entra con tu cuenta de Google de Novalyx para ver tu seguimiento del día.</p>
+  <p>Entra con tu cuenta de Google para ver tu seguimiento del día.</p>
   <div id="gwarn" class="warn hidden">Falta configurar el Client ID de Google. Mientras tanto puedes ver la demostración.</div>
   <div id="gbtn"></div>
   <button class="demo" onclick="showDemoPick()">Ver demostración (sin conexión)</button>
@@ -149,7 +149,7 @@ button{font-family:inherit;cursor:pointer;border:none}
 <!-- ============ APP ============ -->
 <div class="app hidden" id="app">
   <div class="hdr">
-    <div class="brand">NOVA<b>LYX</b></div>
+    <div class="brand">Dr. Miguel <b>Soto</b></div>
     <div class="me">
       <div class="info"><div class="n" id="meName">—</div><div class="d" id="meDate">—</div></div>
       <div class="av" id="meAv" onclick="logout()">—</div>
@@ -269,7 +269,7 @@ function enterDemo(name){
   localStorage.setItem('nvx_demo_asesora', name);
   state.rol = (name==='Director')?'director':'asesora';
   state.asesora = (name==='Director')?null:name;
-  state.nombre = name; state.email='demo@novalyx';
+  state.nombre = name; state.email='demo@drmiguelsoto';
   enterApp(); reload();
 }
 
@@ -441,7 +441,7 @@ function saveConfig(){
 // ============ DEMO DATA ============
 function demoRows(){
   return [
-    {id:'COT-0099',asesora:'Claudia Falcón',paciente:'Elizabeth Aparicio',procedimiento:'Deep Plane Lifting Hybrid MS®',monto:165000,dias:0,estado:'En seguimiento',motivo:'',accionHoy:'Día 0 · Agradecer visita + enviar cotización',proximo:'Hoy',whatsapp:'https://wa.me/18058732148',pdf:'#',notas:'',mensaje:'Hola Elizabeth 🌷 Fue un gusto conocerte en Novalyx. Te dejo el resumen de tu Deep Plane Lifting y tu cotización ($165,000, vigente hasta el 18 jul 2026). Cualquier duda, escríbeme directo.'},
+    {id:'COT-0099',asesora:'Claudia Falcón',paciente:'Elizabeth Aparicio',procedimiento:'Deep Plane Lifting Hybrid MS®',monto:165000,dias:0,estado:'En seguimiento',motivo:'',accionHoy:'Día 0 · Agradecer visita + enviar cotización',proximo:'Hoy',whatsapp:'https://wa.me/18058732148',pdf:'#',notas:'',mensaje:'Hola Elizabeth 🌷 Fue un gusto conocerte en el consultorio del Dr. Miguel Soto. Te dejo el resumen de tu Deep Plane Lifting y tu cotización ($165,000, vigente hasta el 18 jul 2026). Cualquier duda, escríbeme directo.'},
     {id:'COT-0090',asesora:'Susana Palacios',paciente:'Alan Christopher González',procedimiento:'Rinoplastía Ultrasónica',monto:86500,dias:2,estado:'En seguimiento',motivo:'Precio',accionHoy:'Día 2 · Abrir conversación de pago',proximo:'Hoy',whatsapp:'https://wa.me/525512345678',pdf:'#',notas:'',mensaje:'Alan, ¿pudiste revisar la cotización de tu Rinoplastía? Muchas pacientes lo hacen a meses sin intereses o con plan de apartado. ¿Te comparto las opciones?'},
     {id:'COT-0079',asesora:'Anahí Alvarado',paciente:'Lucía García Gutiérrez',procedimiento:'Lipo Full Body + Mamoplastía',monto:193500,dias:7,estado:'En seguimiento',motivo:'Miedo / dudas',accionHoy:'Día 7 · Enviar prueba social',proximo:'Hoy',whatsapp:'https://wa.me/525587654321',pdf:'#',notas:'Le preocupa la recuperación',mensaje:'Te comparto historias de pacientes que tenían las mismas dudas antes de su procedimiento. Ver su antes y después y cómo vivieron la recuperación tranquiliza muchísimo.'},
     {id:'COT-0069',asesora:'Valeria Lima',paciente:'Vania Becerril González',procedimiento:'Abdominoplastía + RibXcar',monto:180000,dias:14,estado:'En seguimiento',motivo:'Decisión con terceros',accionHoy:'Día 14 · Check-in cálido',proximo:'Hoy',whatsapp:'https://wa.me/525511223344',pdf:'#',notas:'',mensaje:'Hola Vania 🌷 ¿cómo vas con la decisión sobre tu Abdominoplastía? Recuerda que tu precio sigue protegido. Sin prisa, aquí sigo.'},
