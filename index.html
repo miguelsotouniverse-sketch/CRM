@@ -196,7 +196,7 @@ button{font-family:inherit;cursor:pointer;border:none}
   <a class="active" id="nDia" onclick="setTab('dia')"><span class="bi">☀</span>Mi día</a>
   <a id="nPool" onclick="setTab('pool')"><span class="bi">◎</span>Pool</a>
   <a id="nTodas" onclick="setTab('todas')"><span class="bi">❤</span>Todas</a>
-  <a onclick="reload()"><span class="bi">↻</span>Actualizar</a>
+  <a onclick="sincronizar()"><span class="bi">↻</span>Actualizar</a>
   <a onclick="logout()"><span class="bi">⇄</span>Salir</a>
 </div>
 
@@ -336,6 +336,20 @@ async function apiPost(body){
   body.idToken = state.idToken;
   const r = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
   return await r.json();
+}
+
+// Actualización manual: re-corre el motor (re-lee cotizaciones, actualiza estados) y refresca.
+async function sincronizar(){
+  if(state.demo){ toast('En demo no hay datos que sincronizar'); return; }
+  showLoading(); toast('Actualizando con tus cotizaciones…');
+  try{
+    const j = await apiPost({action:'sync'});
+    if(!j.ok){ throw new Error(j.error||'Error'); }
+    state.rol=j.rol; state.asesora=j.asesora; state.nombre=j.nombre||state.nombre; state.rows=j.rows||[];
+    afterData(); toast('¡Actualizado! ✓');
+  }catch(err){
+    document.getElementById('list').innerHTML=`<div class="state"><div class="ic">⚠️</div><h3>No pude actualizar</h3><p>${err.message}</p></div>`;
+  }
 }
 
 // ============ RENDER ============
