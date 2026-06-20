@@ -129,6 +129,27 @@ button{font-family:inherit;cursor:pointer;border:none}
 .modal .actions{display:flex;gap:10px;margin-top:18px}
 .modal .actions button{flex:1;border-radius:11px;padding:11px;font-weight:700;font-size:13.5px}
 .modal .save{background:var(--gold);color:#10141a}.modal .cancel{background:var(--panel2);color:var(--soft);border:1px solid var(--line)}
+
+/* ----- Vista TABLA + alertas ----- */
+.app.wide{max-width:1180px}
+.viewbar{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:8px 18px 0}
+.viewbar .vbtn{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600}
+.viewbar .vbtn.active{background:var(--gold);color:#10141a;border-color:var(--gold)}
+.alertbar{margin:10px 18px 0;background:rgba(233,128,128,.1);border:1px solid rgba(233,128,128,.32);color:var(--red);border-radius:11px;padding:10px 14px;font-size:12.5px;font-weight:700;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.alertbar span{color:var(--soft);font-weight:500}
+.tablewrap{overflow-x:auto}
+table.grid{width:100%;border-collapse:collapse;font-size:12.5px;min-width:880px}
+table.grid th{text-align:left;color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;padding:10px 10px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+table.grid td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.grid tbody tr:hover td{background:var(--panel)}
+table.grid .pnm{font-weight:700;color:var(--txt)}
+table.grid .pproc{color:var(--gold2);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.grid .msgcell{max-width:300px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.grid tr.alertrow td{background:rgba(233,128,128,.06)}
+.pill-sm{font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap;display:inline-block}
+.ico-btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:13px;color:var(--soft);text-decoration:none;display:inline-flex;cursor:pointer}
+.ico-btn.wa{color:#25D366}
+.alert-dot{color:var(--red);font-size:15px;cursor:help}
 </style>
 </head>
 <body>
@@ -188,7 +209,12 @@ button{font-family:inherit;cursor:pointer;border:none}
     <button class="tab" id="tabPool" onclick="setTab('pool')">Pool</button>
     <button class="tab" id="tabTodas" onclick="setTab('todas')">Todas</button>
   </div>
+  <div class="viewbar">
+    <button class="vbtn active" id="vbCards" onclick="setView('cards')">▤ Tarjetas</button>
+    <button class="vbtn" id="vbTable" onclick="setView('table')">▦ Tabla</button>
+  </div>
   <div class="search hidden" id="searchWrap"><input id="searchInput" placeholder="🔍 Buscar paciente o procedimiento" oninput="render()"></div>
+  <div id="alertBar"></div>
   <div class="list" id="list"></div>
 </div>
 
@@ -224,7 +250,15 @@ const AV_COLORS = {
   'Anahí Alvarado':'linear-gradient(135deg,#e09bb4,#b58cf0)','Valeria Lima':'linear-gradient(135deg,#56c596,#c9a96a)','Director':'linear-gradient(135deg,#c9a96a,#73a9f0)'
 };
 const MOTIVOS = ['Precio','Miedo / dudas','Comparando','Decisión con terceros','Tiempos'];
-let state = { idToken:null, email:null, nombre:null, picture:null, rol:'asesora', asesora:null, rows:[], tab:'dia', demo:false };
+let state = { idToken:null, email:null, nombre:null, picture:null, rol:'asesora', asesora:null, rows:[], tab:'dia', view:(localStorage.getItem('nvx_view')||'cards'), demo:false };
+
+function setView(v){
+  state.view=v; localStorage.setItem('nvx_view',v);
+  document.getElementById('vbCards').classList.toggle('active',v==='cards');
+  document.getElementById('vbTable').classList.toggle('active',v==='table');
+  document.getElementById('app').classList.toggle('wide',v==='table');
+  render();
+}
 
 // ============ ARRANQUE ============
 window.onload = function(){
@@ -287,6 +321,9 @@ function enterApp(){
   if(state.picture){ av.style.backgroundImage='url('+state.picture+')'; av.textContent=''; }
   else { av.textContent = nombre.split(' ').map(x=>x[0]).slice(0,2).join(''); av.style.background = AV_COLORS[state.asesora]||AV_COLORS['Director']; }
   const d=new Date(); document.getElementById('meDate').textContent = d.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
+  document.getElementById('vbCards').classList.toggle('active',state.view==='cards');
+  document.getElementById('vbTable').classList.toggle('active',state.view==='table');
+  document.getElementById('app').classList.toggle('wide',state.view==='table');
 }
 function logout(){
   if(window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
@@ -402,6 +439,14 @@ function render(){
     const ord={'Vencida':0,'En seguimiento':1,'Cerrada':2,'Descartada':3};
     rows.sort((a,b)=>(ord[a.estado]??9)-(ord[b.estado]??9)||a.dias-b.dias);
   }
+  const sinDueno = all.filter(r=>activo(r)&&esLibre(r)).length;
+  const vencidas = all.filter(r=>r.estado==='Vencida').length;
+  const ab=document.getElementById('alertBar');
+  if(sinDueno||vencidas){
+    ab.className='alertbar';
+    ab.innerHTML=`⚠ Atención: ${sinDueno?`<b>${sinDueno}</b> sin dueña`:''}${(sinDueno&&vencidas)?' · ':''}${vencidas?`<b>${vencidas}</b> vencidas sin cerrar`:''} <span>— requieren seguimiento</span>`;
+  } else { ab.className=''; ab.innerHTML=''; }
+
   const list=document.getElementById('list');
   if(rows.length===0){
     const E={dia:['🎉','¡Día completo!','No tienes pacientes pendientes de contactar hoy.'],
@@ -411,7 +456,47 @@ function render(){
     list.innerHTML=`<div class="state"><div class="ic">${e[0]}</div><h3>${e[1]}</h3><p>${e[2]}</p></div>`;
     return;
   }
-  list.innerHTML=rows.map(r=>cardHTML(r,done.includes(r.id))).join('');
+  list.innerHTML = state.view==='table' ? renderTable(rows) : rows.map(r=>cardHTML(r,done.includes(r.id))).join('');
+}
+
+// ----- Helpers de tabla / alertas -----
+function alertaTxt(r){
+  if(activo(r) && esLibre(r)) return 'Sin dueña';
+  if(r.estado==='Vencida') return 'Vencida sin cerrar';
+  return '';
+}
+function estadoPillSm(e){
+  const map={'Vencida':['b-venc','⏰ Vencida'],'Cerrada':['b-cerr','✓ Cerrada'],'Descartada':['b-desc','Descartada'],'En seguimiento':['b-seg','● Seguimiento']};
+  const m=map[e]||['b-seg',e]; return `<span class="pill-sm ${m[0]}">${m[1]}</span>`;
+}
+function renderTable(rows){
+  const head=`<tr><th></th><th>Paciente</th><th>Monto</th><th>Días</th><th>Estado</th><th>Dueña</th><th>Motivo</th><th>Acción de hoy</th><th>Mensaje sugerido</th><th></th></tr>`;
+  const body=rows.map(function(r){
+    const al=alertaTxt(r);
+    const owner=esLibre(r)?'<span style="color:var(--amber)">Sin asignar</span>':(esMia(r)?'<b style="color:var(--green)">Tú</b>':r.asesora);
+    const mine=esMia(r)||esLibre(r);
+    let acc='';
+    if(activo(r)){
+      acc+=`<a class="ico-btn wa" href="${r.whatsapp}" target="_blank" rel="noopener" title="WhatsApp">💬</a> `;
+      if(r.mensaje) acc+=`<button class="ico-btn" onclick="copyMsg('${r.id}')" title="Copiar mensaje">📋</button> `;
+      if(state.rol!=='director' && mine) acc+=`<button class="ico-btn" onclick="marcar('${r.id}')" title="Marcar contactado">✓</button> `;
+      if(state.rol!=='director' && !mine && !esLibre(r)) acc+=`<button class="ico-btn" onclick="tomar('${r.id}')" title="Tomar">✋</button>`;
+    }
+    const msg=(r.mensaje||'—').replace(/"/g,'&quot;');
+    return `<tr class="${al?'alertrow':''}">
+      <td>${al?`<span class="alert-dot" title="${al}">⚠</span>`:''}</td>
+      <td><div class="pnm">${r.paciente}</div><div class="pproc">${r.procedimiento}</div></td>
+      <td>${money(r.monto)}</td>
+      <td>${r.dias}</td>
+      <td>${estadoPillSm(r.estado)}</td>
+      <td>${owner}</td>
+      <td>${r.motivo||'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${r.accionHoy||'<span style="color:var(--muted)">—</span>'}</td>
+      <td class="msgcell" title="${msg}">${r.mensaje||'—'}</td>
+      <td style="white-space:nowrap">${acc||''}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="tablewrap"><table class="grid"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 function ownerChip(r){
   if(esLibre(r)) return '<span class="chip" style="border-color:var(--amber);color:var(--amber)">● Sin asignar</span>';
@@ -462,7 +547,13 @@ function cardHTML(r,isDone){
 }
 
 // ============ ACCIONES ============
-function copyMsg(id){ const el=document.getElementById('msg-'+id); if(!el)return; navigator.clipboard.writeText(el.textContent).then(()=>toast('Mensaje copiado ✓')); }
+function copyMsg(id){
+  const r=state.rows.find(x=>x.id===id);
+  const el=document.getElementById('msg-'+id);
+  const txt=(r&&r.mensaje)?r.mensaje:(el?el.textContent:'');
+  if(!txt) return;
+  navigator.clipboard.writeText(txt).then(()=>toast('Mensaje copiado ✓'));
+}
 async function marcar(id){
   const done=getDone(); const r=state.rows.find(x=>x.id===id);
   if(!done.includes(id)){ done.push(id); setDone(done);
