@@ -244,10 +244,11 @@ table.grid tr.alertrow td{background:rgba(233,128,128,.06)}
 let API_URL          = localStorage.getItem('nvx_api_url')   || "https://script.google.com/macros/s/AKfycbz1R3FQEwSTIIq2gCqth6BAFOPJh1wRT7AzxKFE7BQMR-aQ74Zf05t7cZww8Gmjb7DY/exec";
 let GOOGLE_CLIENT_ID = localStorage.getItem('nvx_client_id') || "634352012698-b47t3ed3tvd4d1g7l30l68bd6e5s0ri4.apps.googleusercontent.com";
 
-const ASESORAS = ['Claudia Falcón','Susana Palacios','Anahí Alvarado','Valeria Lima'];
+const ASESORAS = ['Claudia Falcón','Susana Palacios','Anahí Alvarado','Valeria Lima','Dr. Miguel Soto'];
 const AV_COLORS = {
   'Claudia Falcón':'linear-gradient(135deg,#c9a96a,#e09bb4)','Susana Palacios':'linear-gradient(135deg,#5fc6c0,#73a9f0)',
-  'Anahí Alvarado':'linear-gradient(135deg,#e09bb4,#b58cf0)','Valeria Lima':'linear-gradient(135deg,#56c596,#c9a96a)','Director':'linear-gradient(135deg,#c9a96a,#73a9f0)'
+  'Anahí Alvarado':'linear-gradient(135deg,#e09bb4,#b58cf0)','Valeria Lima':'linear-gradient(135deg,#56c596,#c9a96a)',
+  'Dr. Miguel Soto':'linear-gradient(135deg,#c9a96a,#73a9f0)','Director':'linear-gradient(135deg,#c9a96a,#73a9f0)'
 };
 const MOTIVOS = ['Precio','Miedo / dudas','Comparando','Decisión con terceros','Tiempos'];
 let state = { idToken:null, email:null, nombre:null, picture:null, rol:'asesora', asesora:null, rows:[], tab:'dia', view:(localStorage.getItem('nvx_view')||'cards'), demo:false };
@@ -304,7 +305,7 @@ function enterDemo(name){
   state.demo = true;
   localStorage.setItem('nvx_demo_asesora', name);
   state.rol = (name==='Director')?'director':'asesora';
-  state.asesora = (name==='Director')?null:name;
+  state.asesora = (name==='Director')?'Dr. Miguel Soto':name;
   state.nombre = name; state.email='demo@drmiguelsoto';
   enterApp(); reload();
 }
@@ -409,7 +410,7 @@ function estadoBadge(e){
 }
 function money(n){return '$'+Number(n||0).toLocaleString('es-MX');}
 function limpiar(t){return (t||'').replace(/Novalyx/g,'Dr. Miguel Soto');}
-function esMia(r){ return state.rol!=='director' && r.asesora && r.asesora===state.asesora; }
+function esMia(r){ return r.asesora && r.asesora===state.asesora; }
 function esLibre(r){ return !r.asesora; }
 function activo(r){ return r.estado==='En seguimiento'||r.estado==='Vencida'; }
 
@@ -417,7 +418,7 @@ function render(){
   let all=state.rows;
   if(state.rol==='director'){ const f=document.getElementById('dirSelect').value; if(f) all=all.filter(r=>r.asesora===f); }
 
-  const hoy = all.filter(r=>r.accionHoy && activo(r) && (state.rol==='director' || esMia(r)));
+  const hoy = all.filter(r=>r.accionHoy && activo(r) && esMia(r));
   const pool = all.filter(r=>activo(r) && esLibre(r));
   document.getElementById('kHoy').textContent=hoy.length;
   document.getElementById('kSeg').textContent=pool.length;
@@ -480,8 +481,8 @@ function renderTable(rows){
     if(activo(r)){
       acc+=`<a class="ico-btn wa" href="${r.whatsapp}" target="_blank" rel="noopener" title="WhatsApp">💬</a> `;
       if(r.mensaje) acc+=`<button class="ico-btn" onclick="copyMsg('${r.id}')" title="Copiar mensaje">📋</button> `;
-      if(state.rol!=='director' && mine) acc+=`<button class="ico-btn" onclick="marcar('${r.id}')" title="Marcar contactado">✓</button> `;
-      if(state.rol!=='director' && !mine && !esLibre(r)) acc+=`<button class="ico-btn" onclick="tomar('${r.id}')" title="Tomar">✋</button>`;
+      if(mine) acc+=`<button class="ico-btn" onclick="marcar('${r.id}')" title="Marcar contactado">✓</button> `;
+      else acc+=`<button class="ico-btn" onclick="tomar('${r.id}')" title="Tomar">✋</button>`;
     }
     const msgFull=limpiar(r.mensaje); const msg=(msgFull||'—').replace(/"/g,'&quot;');
     return `<tr class="${al?'alertrow':''}">
@@ -510,31 +511,34 @@ function cardHTML(r,isDone){
   const mia=esMia(r), libre=esLibre(r);
   const showMsg=r.mensaje&&active;
   let body='';
-  if(active && !dir && (mia||libre)){
-    body=`
-    <div class="row-actions">
-      <button class="btn copy" onclick="copyMsg('${r.id}')">⧉ Copiar</button>
-      <a class="btn wa" href="${r.whatsapp}" target="_blank" rel="noopener">WhatsApp</a>
-      <button class="btn done ${isDone?'ok':''}" id="done-${r.id}" onclick="marcar('${r.id}')">${isDone?'✓ Hecho':'Contactado'}</button>
-    </div>
-    ${libre?`<button class="btn" style="width:100%;margin-top:9px;background:var(--gold);color:#10141a" onclick="tomar('${r.id}')">✋ Tomar este prospecto</button>`:''}
-    <div class="tools">
-      <select onchange="setMotivo('${r.id}',this.value)"><option value="">Motivo no-cierre…</option>${MOTIVOS.map(m=>`<option ${m===r.motivo?'selected':''}>${m}</option>`).join('')}</select>
-      ${r.pdf&&r.pdf!=='#'?`<a class="pdfbtn" href="${r.pdf}" target="_blank" rel="noopener">📄 PDF</a>`:''}
-    </div>
-    <textarea class="notes" placeholder="Notas rápidas…" onchange="setNotas('${r.id}',this.value)">${r.notas||''}</textarea>`;
-  } else if(active && !dir){
-    body=`
-    <div class="row-actions">
-      <a class="btn wa" href="${r.whatsapp}" target="_blank" rel="noopener">WhatsApp</a>
-      <button class="btn done" onclick="tomar('${r.id}')">✋ Tomar</button>
-    </div>`;
-  } else if(active && dir){
-    body=`<div class="tools"><select onchange="asignar('${r.id}',this.value)">
-      <option value="">Reasignar…</option>
-      <option value="__none__" ${libre?'selected':''}>Sin asignar</option>
-      ${ASESORAS.map(a=>`<option ${a===r.asesora?'selected':''}>${a}</option>`).join('')}
-    </select></div>`;
+  if(active){
+    if(mia||libre){
+      body=`
+      <div class="row-actions">
+        <button class="btn copy" onclick="copyMsg('${r.id}')">⧉ Copiar</button>
+        <a class="btn wa" href="${r.whatsapp}" target="_blank" rel="noopener">WhatsApp</a>
+        <button class="btn done ${isDone?'ok':''}" id="done-${r.id}" onclick="marcar('${r.id}')">${isDone?'✓ Hecho':'Contactado'}</button>
+      </div>
+      ${libre?`<button class="btn" style="width:100%;margin-top:9px;background:var(--gold);color:#10141a" onclick="tomar('${r.id}')">✋ Tomar este prospecto</button>`:''}
+      <div class="tools">
+        <select onchange="setMotivo('${r.id}',this.value)"><option value="">Motivo no-cierre…</option>${MOTIVOS.map(m=>`<option ${m===r.motivo?'selected':''}>${m}</option>`).join('')}</select>
+        ${r.pdf&&r.pdf!=='#'?`<a class="pdfbtn" href="${r.pdf}" target="_blank" rel="noopener">📄 PDF</a>`:''}
+      </div>
+      <textarea class="notes" placeholder="Notas rápidas…" onchange="setNotas('${r.id}',this.value)">${r.notas||''}</textarea>`;
+    } else {
+      body=`
+      <div class="row-actions">
+        <a class="btn wa" href="${r.whatsapp}" target="_blank" rel="noopener">WhatsApp</a>
+        <button class="btn done" onclick="tomar('${r.id}')">✋ Tomar</button>
+      </div>`;
+    }
+    if(dir){
+      body+=`<div class="tools"><select onchange="asignar('${r.id}',this.value)">
+        <option value="">Reasignar a…</option>
+        <option value="__none__" ${libre?'selected':''}>Sin asignar</option>
+        ${ASESORAS.map(a=>`<option ${a===r.asesora?'selected':''}>${a}</option>`).join('')}
+      </select></div>`;
+    }
   } else if(r.notas){
     body=`<div class="msg" style="border-left-color:var(--muted)">📝 ${r.notas}</div>`;
   }
