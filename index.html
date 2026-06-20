@@ -408,6 +408,7 @@ function estadoBadge(e){
   return '<span class="badge b-seg">● En seguimiento</span>';
 }
 function money(n){return '$'+Number(n||0).toLocaleString('es-MX');}
+function limpiar(t){return (t||'').replace(/Novalyx/g,'Dr. Miguel Soto');}
 function esMia(r){ return state.rol!=='director' && r.asesora && r.asesora===state.asesora; }
 function esLibre(r){ return !r.asesora; }
 function activo(r){ return r.estado==='En seguimiento'||r.estado==='Vencida'; }
@@ -482,7 +483,7 @@ function renderTable(rows){
       if(state.rol!=='director' && mine) acc+=`<button class="ico-btn" onclick="marcar('${r.id}')" title="Marcar contactado">✓</button> `;
       if(state.rol!=='director' && !mine && !esLibre(r)) acc+=`<button class="ico-btn" onclick="tomar('${r.id}')" title="Tomar">✋</button>`;
     }
-    const msg=(r.mensaje||'—').replace(/"/g,'&quot;');
+    const msgFull=limpiar(r.mensaje); const msg=(msgFull||'—').replace(/"/g,'&quot;');
     return `<tr class="${al?'alertrow':''}">
       <td>${al?`<span class="alert-dot" title="${al}">⚠</span>`:''}</td>
       <td><div class="pnm">${r.paciente}</div><div class="pproc">${r.procedimiento}</div></td>
@@ -492,7 +493,7 @@ function renderTable(rows){
       <td>${owner}</td>
       <td>${r.motivo||'<span style="color:var(--muted)">—</span>'}</td>
       <td>${r.accionHoy||'<span style="color:var(--muted)">—</span>'}</td>
-      <td class="msgcell" title="${msg}">${r.mensaje||'—'}</td>
+      <td class="msgcell" title="${msg}">${msgFull||'—'}</td>
       <td style="white-space:nowrap">${acc||''}</td>
     </tr>`;
   }).join('');
@@ -541,7 +542,7 @@ function cardHTML(r,isDone){
     <div class="top"><div><div class="nm">${r.paciente}</div><div class="proc">${r.procedimiento}</div></div>${estadoBadge(r.estado)}</div>
     <div class="meta">${ownerChip(r)}<span class="chip">💰 <b>${money(r.monto)}</b></span><span class="chip">📅 <b>${r.dias}</b> días</span>${r.motivo?`<span class="chip">🎯 ${r.motivo}</span>`:''}${r.proximo&&!r.accionHoy?`<span class="chip">⏭ ${r.proximo}</span>`:''}</div>
     ${r.accionHoy?`<div class="accion">👉 ${r.accionHoy}</div>`:''}
-    ${showMsg?`<div class="msg" id="msg-${r.id}">${r.mensaje}</div>`:''}
+    ${showMsg?`<div class="msg" id="msg-${r.id}">${limpiar(r.mensaje)}</div>`:''}
     ${body}
   </div>`;
 }
@@ -550,7 +551,7 @@ function cardHTML(r,isDone){
 function copyMsg(id){
   const r=state.rows.find(x=>x.id===id);
   const el=document.getElementById('msg-'+id);
-  const txt=(r&&r.mensaje)?r.mensaje:(el?el.textContent:'');
+  const txt=limpiar((r&&r.mensaje)?r.mensaje:(el?el.textContent:''));
   if(!txt) return;
   navigator.clipboard.writeText(txt).then(()=>toast('Mensaje copiado ✓'));
 }
