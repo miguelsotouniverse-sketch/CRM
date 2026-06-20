@@ -178,14 +178,15 @@ button{font-family:inherit;cursor:pointer;border:none}
 
   <div class="kpis">
     <div class="kpi hot"><div class="v" id="kHoy">0</div><div class="l">Hoy</div></div>
-    <div class="kpi"><div class="v" id="kSeg">0</div><div class="l">En seg.</div></div>
+    <div class="kpi"><div class="v" id="kSeg">0</div><div class="l">Pool</div></div>
     <div class="kpi due"><div class="v" id="kVenc">0</div><div class="l">Vencidas</div></div>
     <div class="kpi win"><div class="v" id="kCerr">0</div><div class="l">Cierres</div></div>
   </div>
 
   <div class="tabs">
     <button class="tab active" id="tabDia" onclick="setTab('dia')">Mi día</button>
-    <button class="tab" id="tabTodas" onclick="setTab('todas')">Pacientes</button>
+    <button class="tab" id="tabPool" onclick="setTab('pool')">Pool</button>
+    <button class="tab" id="tabTodas" onclick="setTab('todas')">Todas</button>
   </div>
   <div class="search hidden" id="searchWrap"><input id="searchInput" placeholder="🔍 Buscar paciente o procedimiento" oninput="render()"></div>
   <div class="list" id="list"></div>
@@ -193,7 +194,8 @@ button{font-family:inherit;cursor:pointer;border:none}
 
 <div class="botnav hidden" id="botnav">
   <a class="active" id="nDia" onclick="setTab('dia')"><span class="bi">☀</span>Mi día</a>
-  <a id="nTodas" onclick="setTab('todas')"><span class="bi">❤</span>Pacientes</a>
+  <a id="nPool" onclick="setTab('pool')"><span class="bi">◎</span>Pool</a>
+  <a id="nTodas" onclick="setTab('todas')"><span class="bi">❤</span>Todas</a>
   <a onclick="reload()"><span class="bi">↻</span>Actualizar</a>
   <a onclick="logout()"><span class="bi">⇄</span>Salir</a>
 </div>
@@ -340,11 +342,12 @@ async function apiPost(body){
 function showLoading(){ document.getElementById('list').innerHTML=`<div class="state"><div class="spinner"></div><p>Cargando tu seguimiento…</p></div>`; }
 function setTab(t){
   state.tab=t;
-  document.getElementById('tabDia').classList.toggle('active',t==='dia');
-  document.getElementById('tabTodas').classList.toggle('active',t==='todas');
-  document.getElementById('nDia').classList.toggle('active',t==='dia');
-  document.getElementById('nTodas').classList.toggle('active',t==='todas');
-  document.getElementById('searchWrap').classList.toggle('hidden',t==='dia');
+  ['Dia','Pool','Todas'].forEach(function(x){
+    const key=x.toLowerCase();
+    document.getElementById('tab'+x).classList.toggle('active',t===key);
+    const n=document.getElementById('n'+x); if(n) n.classList.toggle('active',t===key);
+  });
+  document.getElementById('searchWrap').classList.toggle('hidden',t!=='todas');
   render();
 }
 function estadoBadge(e){
@@ -354,16 +357,18 @@ function estadoBadge(e){
   return '<span class="badge b-seg">● En seguimiento</span>';
 }
 function money(n){return '$'+Number(n||0).toLocaleString('es-MX');}
-function visibles(){
-  let rows=state.rows;
-  if(state.rol==='director'){ const f=document.getElementById('dirSelect').value; if(f) rows=rows.filter(r=>r.asesora===f); }
-  return rows;
-}
+function esMia(r){ return state.rol!=='director' && r.asesora && r.asesora===state.asesora; }
+function esLibre(r){ return !r.asesora; }
+function activo(r){ return r.estado==='En seguimiento'||r.estado==='Vencida'; }
+
 function render(){
-  const all=visibles();
-  const hoy=all.filter(r=>r.accionHoy&&(r.estado==='En seguimiento'||r.estado==='Vencida'));
+  let all=state.rows;
+  if(state.rol==='director'){ const f=document.getElementById('dirSelect').value; if(f) all=all.filter(r=>r.asesora===f); }
+
+  const hoy = all.filter(r=>r.accionHoy && activo(r) && (state.rol==='director' || esMia(r)));
+  const pool = all.filter(r=>activo(r) && esLibre(r));
   document.getElementById('kHoy').textContent=hoy.length;
-  document.getElementById('kSeg').textContent=all.filter(r=>r.estado==='En seguimiento').length;
+  document.getElementById('kSeg').textContent=pool.length;
   document.getElementById('kVenc').textContent=all.filter(r=>r.estado==='Vencida').length;
   document.getElementById('kCerr').textContent=all.filter(r=>r.estado==='Cerrada').length;
 
@@ -372,10 +377,11 @@ function render(){
   document.getElementById('ringPct').textContent=pct+'%';
   document.getElementById('ringFill').style.strokeDashoffset=201-(201*pct/100);
   document.getElementById('progTitle').textContent=tot?`${dn} de ${tot} contactos hechos`:'Sin pendientes hoy';
-  document.getElementById('progSub').textContent=tot?(pct===100?'¡Lo lograste! 🎉':'Tú puedes, sigue así'):'Disfruta tu día';
+  document.getElementById('progSub').textContent=tot?(pct===100?'¡Lo lograste! 🎉':'Tú puedes, sigue así'):(pool.length?`${pool.length} en el pool por tomar`:'Disfruta tu día');
 
   let rows;
-  if(state.tab==='dia'){ rows=hoy; }
+  if(state.tab==='dia') rows=hoy;
+  else if(state.tab==='pool') rows=pool;
   else{
     const q=(document.getElementById('searchInput').value||'').toLowerCase();
     rows=all.filter(r=>!q||(r.paciente+' '+r.procedimiento).toLowerCase().includes(q));
@@ -384,46 +390,83 @@ function render(){
   }
   const list=document.getElementById('list');
   if(rows.length===0){
-    list.innerHTML=state.tab==='dia'
-      ?`<div class="state"><div class="ic">🎉</div><h3>¡Día completo!</h3><p>No hay pacientes pendientes de contactar hoy. Buen trabajo.</p></div>`
-      :`<div class="state"><div class="ic">🔍</div><h3>Sin resultados</h3><p>No hay pacientes que coincidan.</p></div>`;
+    const E={dia:['🎉','¡Día completo!','No tienes pacientes pendientes de contactar hoy.'],
+             pool:['✅','Pool vacío','No hay prospectos sin asignar por ahora.'],
+             todas:['🔍','Sin resultados','No hay pacientes que coincidan.']};
+    const e=E[state.tab]||E.todas;
+    list.innerHTML=`<div class="state"><div class="ic">${e[0]}</div><h3>${e[1]}</h3><p>${e[2]}</p></div>`;
     return;
   }
   list.innerHTML=rows.map(r=>cardHTML(r,done.includes(r.id))).join('');
 }
+function ownerChip(r){
+  if(esLibre(r)) return '<span class="chip" style="border-color:var(--amber);color:var(--amber)">● Sin asignar</span>';
+  if(esMia(r))   return '<span class="chip" style="border-color:var(--green);color:var(--green)">● Tú</span>';
+  return `<span class="chip">👤 ${r.asesora}</span>`;
+}
 function cardHTML(r,isDone){
-  const showMsg=r.mensaje&&(r.estado==='En seguimiento'||r.estado==='Vencida');
-  const active=(r.estado==='En seguimiento'||r.estado==='Vencida');
+  const active=activo(r);
   const dir=state.rol==='director';
-  return `<div class="card" style="border-left-color:${r.estado==='Vencida'?'var(--red)':r.estado==='Cerrada'?'var(--green)':'var(--gold)'}">
-    <div class="top"><div><div class="nm">${r.paciente}</div><div class="proc">${r.procedimiento}</div>${dir&&r.asesora?`<div class="dir-ase">👤 ${r.asesora}</div>`:''}</div>${estadoBadge(r.estado)}</div>
-    <div class="meta">
-      <span class="chip">💰 <b>${money(r.monto)}</b></span><span class="chip">📅 <b>${r.dias}</b> días</span>
-      ${r.motivo?`<span class="chip">🎯 ${r.motivo}</span>`:''}${r.proximo&&!r.accionHoy?`<span class="chip">⏭ ${r.proximo}</span>`:''}
-    </div>
-    ${r.accionHoy?`<div class="accion">👉 ${r.accionHoy}</div>`:''}
-    ${showMsg?`<div class="msg" id="msg-${r.id}">${r.mensaje}</div>`:''}
-    ${active&&!dir?`
+  const mia=esMia(r), libre=esLibre(r);
+  const showMsg=r.mensaje&&active;
+  let body='';
+  if(active && !dir && (mia||libre)){
+    body=`
     <div class="row-actions">
       <button class="btn copy" onclick="copyMsg('${r.id}')">⧉ Copiar</button>
       <a class="btn wa" href="${r.whatsapp}" target="_blank" rel="noopener">WhatsApp</a>
       <button class="btn done ${isDone?'ok':''}" id="done-${r.id}" onclick="marcar('${r.id}')">${isDone?'✓ Hecho':'Contactado'}</button>
     </div>
+    ${libre?`<button class="btn" style="width:100%;margin-top:9px;background:var(--gold);color:#10141a" onclick="tomar('${r.id}')">✋ Tomar este prospecto</button>`:''}
     <div class="tools">
       <select onchange="setMotivo('${r.id}',this.value)"><option value="">Motivo no-cierre…</option>${MOTIVOS.map(m=>`<option ${m===r.motivo?'selected':''}>${m}</option>`).join('')}</select>
       ${r.pdf&&r.pdf!=='#'?`<a class="pdfbtn" href="${r.pdf}" target="_blank" rel="noopener">📄 PDF</a>`:''}
     </div>
-    <textarea class="notes" placeholder="Notas rápidas…" onchange="setNotas('${r.id}',this.value)">${r.notas||''}</textarea>
-    `:`${r.notas?`<div class="msg" style="border-left-color:var(--muted)">📝 ${r.notas}</div>`:''}`}
+    <textarea class="notes" placeholder="Notas rápidas…" onchange="setNotas('${r.id}',this.value)">${r.notas||''}</textarea>`;
+  } else if(active && !dir){
+    body=`
+    <div class="row-actions">
+      <a class="btn wa" href="${r.whatsapp}" target="_blank" rel="noopener">WhatsApp</a>
+      <button class="btn done" onclick="tomar('${r.id}')">✋ Tomar</button>
+    </div>`;
+  } else if(active && dir){
+    body=`<div class="tools"><select onchange="asignar('${r.id}',this.value)">
+      <option value="">Reasignar…</option>
+      <option value="__none__" ${libre?'selected':''}>Sin asignar</option>
+      ${ASESORAS.map(a=>`<option ${a===r.asesora?'selected':''}>${a}</option>`).join('')}
+    </select></div>`;
+  } else if(r.notas){
+    body=`<div class="msg" style="border-left-color:var(--muted)">📝 ${r.notas}</div>`;
+  }
+  return `<div class="card" style="border-left-color:${r.estado==='Vencida'?'var(--red)':r.estado==='Cerrada'?'var(--green)':libre?'var(--amber)':'var(--gold)'}">
+    <div class="top"><div><div class="nm">${r.paciente}</div><div class="proc">${r.procedimiento}</div></div>${estadoBadge(r.estado)}</div>
+    <div class="meta">${ownerChip(r)}<span class="chip">💰 <b>${money(r.monto)}</b></span><span class="chip">📅 <b>${r.dias}</b> días</span>${r.motivo?`<span class="chip">🎯 ${r.motivo}</span>`:''}${r.proximo&&!r.accionHoy?`<span class="chip">⏭ ${r.proximo}</span>`:''}</div>
+    ${r.accionHoy?`<div class="accion">👉 ${r.accionHoy}</div>`:''}
+    ${showMsg?`<div class="msg" id="msg-${r.id}">${r.mensaje}</div>`:''}
+    ${body}
   </div>`;
 }
 
 // ============ ACCIONES ============
 function copyMsg(id){ const el=document.getElementById('msg-'+id); if(!el)return; navigator.clipboard.writeText(el.textContent).then(()=>toast('Mensaje copiado ✓')); }
 async function marcar(id){
-  const done=getDone(); const btn=document.getElementById('done-'+id);
-  if(!done.includes(id)){ done.push(id); setDone(done); btn.classList.add('ok'); btn.textContent='✓ Hecho'; toast('¡Contacto registrado! 💪');
-    await apiPost({action:'marcarContactado',id}); render(); }
+  const done=getDone(); const r=state.rows.find(x=>x.id===id);
+  if(!done.includes(id)){ done.push(id); setDone(done);
+    if(r && !r.asesora) r.asesora = state.asesora||state.nombre;   // al contactar, lo tomas
+    toast('¡Contacto registrado! 💪'); render();
+    await apiPost({action:'marcarContactado',id});
+  }
+}
+async function tomar(id){
+  const r=state.rows.find(x=>x.id===id); if(r) r.asesora=state.asesora||state.nombre;
+  toast('✋ ¡Lo tomaste! Va por tu cuenta'); render();
+  await apiPost({action:'tomar',id});
+}
+async function asignar(id,nombre){
+  if(!nombre) return;
+  const r=state.rows.find(x=>x.id===id);
+  if(nombre==='__none__'){ if(r) r.asesora=''; toast('Liberado al pool'); render(); await apiPost({action:'soltar',id}); }
+  else { if(r) r.asesora=nombre; toast('Reasignado a '+nombre); render(); await apiPost({action:'asignar',id,nombre}); }
 }
 async function setMotivo(id,motivo){ if(!motivo)return; const row=state.rows.find(r=>r.id===id); if(row)row.motivo=motivo; toast('Motivo guardado'); await apiPost({action:'setMotivo',id,motivo}); reload(); }
 async function setNotas(id,notas){ const row=state.rows.find(r=>r.id===id); if(row)row.notas=notas; await apiPost({action:'setNotas',id,notas}); toast('Nota guardada'); }
@@ -446,13 +489,13 @@ function saveConfig(){
 // ============ DEMO DATA ============
 function demoRows(){
   return [
-    {id:'COT-0099',asesora:'Claudia Falcón',paciente:'Elizabeth Aparicio',procedimiento:'Deep Plane Lifting Hybrid MS®',monto:165000,dias:0,estado:'En seguimiento',motivo:'',accionHoy:'Día 0 · Agradecer visita + enviar cotización',proximo:'Hoy',whatsapp:'https://wa.me/18058732148',pdf:'#',notas:'',mensaje:'Hola Elizabeth 🌷 Fue un gusto conocerte en el consultorio del Dr. Miguel Soto. Te dejo el resumen de tu Deep Plane Lifting y tu cotización ($165,000, vigente hasta el 18 jul 2026). Cualquier duda, escríbeme directo.'},
+    {id:'COT-0099',asesora:'',paciente:'Elizabeth Aparicio',procedimiento:'Deep Plane Lifting Hybrid MS®',monto:165000,dias:0,estado:'En seguimiento',motivo:'',accionHoy:'Día 0 · Agradecer visita + enviar cotización',proximo:'Hoy',whatsapp:'https://wa.me/18058732148',pdf:'#',notas:'',mensaje:'Hola Elizabeth 🌷 Fue un gusto conocerte en el consultorio del Dr. Miguel Soto. Te dejo el resumen de tu Deep Plane Lifting y tu cotización ($165,000, vigente hasta el 18 jul 2026). Cualquier duda, escríbeme directo.'},
     {id:'COT-0090',asesora:'Susana Palacios',paciente:'Alan Christopher González',procedimiento:'Rinoplastía Ultrasónica',monto:86500,dias:2,estado:'En seguimiento',motivo:'Precio',accionHoy:'Día 2 · Abrir conversación de pago',proximo:'Hoy',whatsapp:'https://wa.me/525512345678',pdf:'#',notas:'',mensaje:'Alan, ¿pudiste revisar la cotización de tu Rinoplastía? Muchas pacientes lo hacen a meses sin intereses o con plan de apartado. ¿Te comparto las opciones?'},
     {id:'COT-0079',asesora:'Anahí Alvarado',paciente:'Lucía García Gutiérrez',procedimiento:'Lipo Full Body + Mamoplastía',monto:193500,dias:7,estado:'En seguimiento',motivo:'Miedo / dudas',accionHoy:'Día 7 · Enviar prueba social',proximo:'Hoy',whatsapp:'https://wa.me/525587654321',pdf:'#',notas:'Le preocupa la recuperación',mensaje:'Te comparto historias de pacientes que tenían las mismas dudas antes de su procedimiento. Ver su antes y después y cómo vivieron la recuperación tranquiliza muchísimo.'},
-    {id:'COT-0069',asesora:'Valeria Lima',paciente:'Vania Becerril González',procedimiento:'Abdominoplastía + RibXcar',monto:180000,dias:14,estado:'En seguimiento',motivo:'Decisión con terceros',accionHoy:'Día 14 · Check-in cálido',proximo:'Hoy',whatsapp:'https://wa.me/525511223344',pdf:'#',notas:'',mensaje:'Hola Vania 🌷 ¿cómo vas con la decisión sobre tu Abdominoplastía? Recuerda que tu precio sigue protegido. Sin prisa, aquí sigo.'},
+    {id:'COT-0069',asesora:'',paciente:'Vania Becerril González',procedimiento:'Abdominoplastía + RibXcar',monto:180000,dias:14,estado:'En seguimiento',motivo:'Decisión con terceros',accionHoy:'Día 14 · Check-in cálido',proximo:'Hoy',whatsapp:'https://wa.me/525511223344',pdf:'#',notas:'',mensaje:'Hola Vania 🌷 ¿cómo vas con la decisión sobre tu Abdominoplastía? Recuerda que tu precio sigue protegido. Sin prisa, aquí sigo.'},
     {id:'COT-0058',asesora:'Claudia Falcón',paciente:'Mariana Lugo',procedimiento:'Implantes de Glúteos',monto:141500,dias:33,estado:'Vencida',motivo:'Tiempos',accionHoy:'',proximo:'Nurture mensual',whatsapp:'https://wa.me/525599887766',pdf:'#',notas:'Quería para diciembre',mensaje:''},
     {id:'COT-0051',asesora:'Susana Palacios',paciente:'Regina Madrigal',procedimiento:'Mastopexia con Implantes',monto:127000,dias:21,estado:'Cerrada',motivo:'Precio',accionHoy:'',proximo:'',whatsapp:'https://wa.me/525500112233',pdf:'#',notas:'¡Cerró! Cirugía agendada',mensaje:''},
-  ].filter(r=> state.rol==='director' ? true : r.asesora===state.asesora);
+  ];
 }
 </script>
 </body>
