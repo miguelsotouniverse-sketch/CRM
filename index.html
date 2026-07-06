@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -164,6 +165,28 @@ table.grid tr.alertrow td{background:#fdf2f2}
 .modal .actions button{flex:1;border-radius:var(--radius-sm);padding:12px;font-weight:600;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
 .modal .save{background:var(--black);color:#fff}
 .modal .cancel{background:transparent;color:var(--txt);border:1px solid var(--line)}
+
+/* ----- DASHBOARD EJECUTIVO ----- */
+.dash{padding:6px 18px 26px}
+.dash h4{font-family:var(--serif);font-size:16px;font-weight:500;margin:22px 0 10px;color:var(--txt)}
+.dashkpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.dk{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);padding:16px}
+.dk .l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.dk .v{font-family:var(--serif);font-size:24px;font-weight:600;margin-top:6px}
+.dk .s{font-size:11px;color:var(--muted);margin-top:3px}
+.dk.win .v{color:var(--green)} .dk.lost .v{color:var(--red)} .dk.gold .v{color:var(--gold-dark)}
+.dash-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:680px){.dash-cols{grid-template-columns:1fr}}
+.chartbox{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);padding:16px}
+.chartbox .ct{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;font-weight:600}
+.chartbox canvas{max-height:260px}
+.prodtable{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);overflow:hidden}
+.prodtable th{background:var(--bg-soft);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:10px 12px;white-space:nowrap}
+.prodtable td{padding:10px 12px;border-top:1px solid var(--line-soft)}
+.prodtable td.num{text-align:right}
+.prodtable .aname{font-weight:600}
+.dashfilter{display:flex;gap:10px;align-items:center;margin:2px 0 6px}
+.dashfilter select{background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;appearance:none}
 </style>
 </head>
 <body>
@@ -220,11 +243,12 @@ table.grid tr.alertrow td{background:#fdf2f2}
   </div>
 
   <div class="tabs">
+    <button class="tab hidden" id="tabPanel" onclick="setTab('panel')">Panel</button>
     <button class="tab active" id="tabDia" onclick="setTab('dia')">Mi día</button>
     <button class="tab" id="tabPool" onclick="setTab('pool')">Pool</button>
     <button class="tab" id="tabTodas" onclick="setTab('todas')">Todas</button>
   </div>
-  <div class="viewbar">
+  <div class="viewbar" id="viewbar">
     <button class="vbtn active" id="vbCards" onclick="setView('cards')">▤ Tarjetas</button>
     <button class="vbtn" id="vbTable" onclick="setView('table')">▦ Tabla</button>
   </div>
@@ -374,6 +398,7 @@ async function reload(){
 function afterData(){
   if(state.rol==='director'){
     document.getElementById('dirFilter').classList.remove('hidden');
+    document.getElementById('tabPanel').classList.remove('hidden');
     document.getElementById('heroSub').textContent='Vista de Director · todo el equipo';
     const sel=document.getElementById('dirSelect');
     const names=[...new Set(state.rows.map(r=>r.asesora).filter(Boolean))].sort();
@@ -406,12 +431,14 @@ async function sincronizar(){
 function showLoading(){ document.getElementById('list').innerHTML=`<div class="state"><div class="spinner"></div><p>Cargando tu seguimiento…</p></div>`; }
 function setTab(t){
   state.tab=t;
-  ['Dia','Pool','Todas'].forEach(function(x){
+  ['Panel','Dia','Pool','Todas'].forEach(function(x){
     const key=x.toLowerCase();
-    document.getElementById('tab'+x).classList.toggle('active',t===key);
+    const tb=document.getElementById('tab'+x); if(tb) tb.classList.toggle('active',t===key);
     const n=document.getElementById('n'+x); if(n) n.classList.toggle('active',t===key);
   });
   document.getElementById('searchWrap').classList.toggle('hidden',t!=='todas');
+  document.getElementById('viewbar').classList.toggle('hidden',t==='panel');
+  document.getElementById('app').classList.toggle('wide', t==='panel' || state.view==='table');
   render();
 }
 function estadoBadge(e){
@@ -421,7 +448,10 @@ function estadoBadge(e){
   return '<span class="badge b-seg">● En seguimiento</span>';
 }
 function money(n){return '$'+Number(n||0).toLocaleString('es-MX');}
+function money0(n){return '$'+Math.round(Number(n||0)).toLocaleString('es-MX');}
 function limpiar(t){return (t||'').replace(/Novalyx/g,'Dr. Miguel Soto');}
+let CHARTS={};
+function destroyCharts(){ Object.values(CHARTS).forEach(function(c){try{c.destroy();}catch(e){}}); CHARTS={}; }
 function esMia(r){ return r.asesora && r.asesora===state.asesora; }
 function esLibre(r){ return !r.asesora; }
 function activo(r){ return r.estado==='En seguimiento'||r.estado==='Vencida'; }
@@ -443,6 +473,8 @@ function render(){
   document.getElementById('ringFill').style.strokeDashoffset=201-(201*pct/100);
   document.getElementById('progTitle').textContent=tot?`${dn} de ${tot} contactos hechos`:'Sin pendientes hoy';
   document.getElementById('progSub').textContent=tot?(pct===100?'¡Lo lograste! 🎉':'Tú puedes, sigue así'):(pool.length?`${pool.length} en el pool por tomar`:'Disfruta tu día');
+
+  if(state.tab==='panel'){ document.getElementById('alertBar').innerHTML=''; renderPanel(all); return; }
 
   let rows;
   if(state.tab==='dia') rows=hoy;
@@ -471,6 +503,74 @@ function render(){
     return;
   }
   list.innerHTML = state.view==='table' ? renderTable(rows) : rows.map(r=>cardHTML(r,done.includes(r.id))).join('');
+}
+
+// ============ DASHBOARD EJECUTIVO (Nivel 1) ============
+function renderPanel(all){
+  const cerr=all.filter(r=>r.estado==='Cerrada'), perd=all.filter(r=>r.estado==='Descartada'),
+        venc=all.filter(r=>r.estado==='Vencida'), seg=all.filter(r=>r.estado==='En seguimiento');
+  const sum=a=>a.reduce((x,r)=>x+(+r.monto||0),0);
+  const montoCerr=sum(cerr), pipeline=sum(seg), decididos=cerr.length+perd.length+venc.length;
+  const conv=decididos?cerr.length/decididos:0, forecast=pipeline*conv, ticket=cerr.length?montoCerr/cerr.length:0;
+  const sinDueno=all.filter(r=>(r.estado==='En seguimiento'||r.estado==='Vencida')&&!r.asesora).length;
+  const porContactar=all.filter(r=>r.accionHoy&&(r.estado==='En seguimiento'||r.estado==='Vencida')).length;
+
+  const names=[...new Set(all.map(r=>r.asesora).filter(Boolean))].sort();
+  const prod=names.map(function(n){
+    const cart=all.filter(r=>r.asesora===n);
+    const c=cart.filter(r=>r.estado==='Cerrada'); const p=cart.filter(r=>r.estado==='Descartada'||r.estado==='Vencida');
+    const decid=c.length+p.length;
+    return {n:n, cartera:cart.length, act:cart.filter(r=>r.estado==='En seguimiento').length,
+      cerrN:c.length, cerrM:sum(c), perdN:p.length, conv:decid?Math.round(c.length/decid*100):0};
+  });
+  const motMap={}; perd.concat(venc).forEach(function(r){const m=r.motivo||'Sin motivo'; motMap[m]=(motMap[m]||0)+1;});
+
+  document.getElementById('list').innerHTML=`<div class="dash">
+    <div class="dashkpis">
+      <div class="dk win"><div class="l">Cierres</div><div class="v">${cerr.length}</div><div class="s">${money0(montoCerr)}</div></div>
+      <div class="dk gold"><div class="l">Pipeline abierto</div><div class="v">${money0(pipeline)}</div><div class="s">${seg.length} activos</div></div>
+      <div class="dk gold"><div class="l">Forecast</div><div class="v">${money0(forecast)}</div><div class="s">${Math.round(conv*100)}% conversión</div></div>
+      <div class="dk"><div class="l">Tasa de cierre</div><div class="v">${Math.round(conv*100)}%</div><div class="s">de decisiones tomadas</div></div>
+      <div class="dk lost"><div class="l">Perdidos</div><div class="v">${perd.length+venc.length}</div><div class="s">${perd.length} descartados · ${venc.length} vencidos</div></div>
+      <div class="dk"><div class="l">Ticket promedio</div><div class="v">${money0(ticket)}</div><div class="s">por cierre</div></div>
+    </div>
+
+    <h4>Productividad por asesora</h4>
+    <div style="overflow-x:auto"><table class="prodtable"><thead><tr>
+      <th>Asesora</th><th>Cartera</th><th>Activos</th><th>Cierres</th><th>$ Cerrado</th><th>Perdidos</th><th>Conversión</th>
+      </tr></thead><tbody>
+      ${prod.length?prod.map(p=>`<tr><td class="aname">${p.n}</td><td class="num">${p.cartera}</td><td class="num">${p.act}</td><td class="num">${p.cerrN}</td><td class="num">${money0(p.cerrM)}</td><td class="num">${p.perdN}</td><td class="num">${p.conv}%</td></tr>`).join(''):'<tr><td colspan="7" style="color:var(--muted)">Aún no hay prospectos asignados.</td></tr>'}
+      </tbody></table></div>
+
+    <div class="dash-cols" style="margin-top:16px">
+      <div class="chartbox"><div class="ct">$ Cerrado por asesora</div><canvas id="chCierres"></canvas></div>
+      <div class="chartbox"><div class="ct">Motivos de pérdida</div><canvas id="chMotivos"></canvas></div>
+    </div>
+    <div class="chartbox" style="margin-top:14px"><div class="ct">Gestión de leads por estatus</div><canvas id="chEstados"></canvas></div>
+
+    <h4>Alertas</h4>
+    <div class="dashkpis">
+      <div class="dk lost"><div class="l">Sin dueña</div><div class="v">${sinDueno}</div><div class="s">prospectos en el pool</div></div>
+      <div class="dk"><div class="l">Por contactar hoy</div><div class="v">${porContactar}</div><div class="s">acciones pendientes</div></div>
+      <div class="dk lost"><div class="l">Vencidos</div><div class="v">${venc.length}</div><div class="s">${money0(sum(venc))} en riesgo</div></div>
+    </div>
+  </div>`;
+
+  destroyCharts();
+  if(!window.Chart) return;
+  const PAL=['#b09372','#8e7456','#5a7a4e','#8a8378','#a98b6a','#6f6a60','#1a1a1a'];
+  const gridC='#e7dfce';
+  Chart.defaults.font.family='Inter, sans-serif'; Chart.defaults.color='#8a8378';
+  CHARTS.cierres=new Chart(document.getElementById('chCierres'),{type:'bar',
+    data:{labels:prod.map(p=>p.n),datasets:[{data:prod.map(p=>p.cerrM),backgroundColor:'#b09372',borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridC},ticks:{callback:v=>'$'+Math.round(v/1000)+'k'}},y:{grid:{display:false}}}}});
+  const mk=Object.keys(motMap);
+  CHARTS.motivos=new Chart(document.getElementById('chMotivos'),{type:'doughnut',
+    data:{labels:mk.length?mk:['Sin pérdidas'],datasets:[{data:mk.length?mk.map(k=>motMap[k]):[1],backgroundColor:PAL,borderWidth:0}]},
+    options:{responsive:true,plugins:{legend:{position:'right',labels:{boxWidth:12,font:{size:11}}}},cutout:'62%'}});
+  CHARTS.estados=new Chart(document.getElementById('chEstados'),{type:'bar',
+    data:{labels:['En seguimiento','Vencidos','Cerrados','Descartados'],datasets:[{data:[seg.length,venc.length,cerr.length,perd.length],backgroundColor:['#b09372','#a13a3a','#5a7a4e','#8a8378'],borderRadius:4}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:gridC},ticks:{precision:0}}}}});
 }
 
 // ----- Helpers de tabla / alertas -----
