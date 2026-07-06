@@ -219,6 +219,33 @@ table.grid tr.alertrow td{background:#fdf2f2}
 .oprow .opsub{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .oprow .opact{display:flex;gap:6px;flex-shrink:0}
 .ico-btn.okb{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* ----- EXPEDIENTE 360 (Nivel 4) ----- */
+.clickname{cursor:pointer}
+.clickname:hover{text-decoration:underline;text-decoration-color:var(--gold)}
+.exp{position:fixed;inset:0;background:var(--bg);z-index:80;overflow-y:auto}
+.exp-hd{position:sticky;top:0;background:var(--black);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px;z-index:2}
+.exp-hd .back{background:rgba(255,255,255,.14);color:#fff;border-radius:50%;width:34px;height:34px;font-size:17px;flex-shrink:0}
+.exp-hd .t{font-family:var(--serif);font-size:17px}
+.exp-body{max-width:760px;margin:0 auto;padding:20px 18px 48px}
+.exp-name{font-family:var(--serif);font-size:26px;font-weight:500}
+.exp-sub{color:var(--muted);font-size:13px;margin-top:3px}
+.exp-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.exp-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+@media(max-width:600px){.exp-grid{grid-template-columns:1fr}}
+.exp-field{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius-sm);padding:12px 14px}
+.exp-field .fl{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.exp-field .fv{font-size:14px;margin-top:4px;font-weight:500;word-break:break-word}
+.exp-sec{font-family:var(--serif);font-size:16px;margin:26px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+.tl .ev{display:flex;gap:12px;padding-bottom:16px;position:relative}
+.tl .ev:before{content:'';position:absolute;left:9px;top:22px;bottom:-2px;width:2px;background:var(--line-soft)}
+.tl .ev:last-child:before{display:none}
+.tl .dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;background:var(--gold);border:3px solid var(--bg);box-shadow:0 0 0 1px var(--line)}
+.tl .ec{flex:1}
+.tl .et{font-size:13px;font-weight:600}
+.tl .ed{font-size:11.5px;color:var(--muted);margin-top:1px}
+.exp-soon{background:var(--bg-soft);border:1px dashed var(--line);border-radius:var(--radius-sm);padding:16px;color:var(--muted);font-size:12.5px;text-align:center}
 </style>
 </head>
 <body>
@@ -299,6 +326,8 @@ table.grid tr.alertrow td{background:#fdf2f2}
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="exp hidden" id="exp"></div>
 
 <div class="modal hidden" id="configModal">
   <div class="box">
@@ -631,7 +660,7 @@ function renderKanban(all){
 }
 function kcard(r){
   return `<div class="kcard" draggable="true" ondragstart="kDragStart(event,'${r.id}')">
-    <div class="kn">${r.paciente}</div>
+    <div class="kn clickname" onclick="openExpediente('${r.id}')">${r.paciente}</div>
     <div class="kp">${r.procedimiento}</div>
     <div class="kfoot"><span class="kval">${money0(r.monto)}</span><span>${r.dias}d</span></div>
     <div class="kase">${r.asesora?('👤 '+r.asesora):'<span style="color:var(--amber)">Sin asignar</span>'}</div>
@@ -658,7 +687,7 @@ function opRow(r){
   const mia=esMia(r), libre=esLibre(r), done=getDone().includes(r.id);
   return `<div class="oprow">
     <div class="opinfo">
-      <div class="opn">${r.paciente}</div>
+      <div class="opn clickname" onclick="openExpediente('${r.id}')">${r.paciente}</div>
       <div class="opsub">${r.procedimiento} · ${money0(r.monto)} · ${r.dias}d${r.motivo?' · '+r.motivo:''}${r.etapa?' · '+r.etapa:''}</div>
     </div>
     <div class="opact">
@@ -683,6 +712,68 @@ function renderOperacion(all){
     + sec('Oportunidades en el pool','◎',pool,'var(--amber)');
   if(!html.trim()) html = `<div class="state"><div class="ic">🎉</div><h3>Bandeja al día</h3><p>No tienes pendientes ahora mismo. Buen trabajo.</p></div>`;
   document.getElementById('list').innerHTML='<div style="padding:12px 18px 24px">'+html+'</div>';
+}
+
+// ============ EXPEDIENTE 360 (Nivel 4) ============
+async function openExpediente(id){
+  const exp=document.getElementById('exp'); exp.classList.remove('hidden');
+  exp.innerHTML=`<div class="exp-hd"><button class="back" onclick="closeExp()">←</button><div class="t">Expediente 360</div></div><div class="state"><div class="spinner"></div><p>Cargando expediente…</p></div>`;
+  let r, acts=[];
+  if(state.demo){ r=state.rows.find(x=>x.id===id); acts=demoActs(r); }
+  else { try{ const j=await apiPost({action:'expediente',id}); if(j&&j.ok){ r=j.paciente; acts=j.actividades||[]; } }catch(e){} }
+  if(!r){ exp.innerHTML=`<div class="exp-hd"><button class="back" onclick="closeExp()">←</button><div class="t">Expediente</div></div><div class="state"><div class="ic">⚠️</div><h3>No pude cargar el expediente</h3></div>`; return; }
+  renderExpediente(r,acts);
+}
+function closeExp(){ const exp=document.getElementById('exp'); exp.classList.add('hidden'); exp.innerHTML=''; }
+function expField(l,v){ return `<div class="exp-field"><div class="fl">${l}</div><div class="fv">${(v===0||v)?v:'—'}</div></div>`; }
+function renderExpediente(r,acts){
+  const etapaBadge = r.etapa?`<span class="badge b-seg">▦ ${r.etapa}</span>`:'';
+  const tl = acts.map(a=>`<div class="ev"><div class="dot"></div><div class="ec"><div class="et">${a.tipo||'Actividad'}</div><div class="ed">${limpiar(a.detalle||'')}${a.usuario?' · '+a.usuario:''} — ${a.fecha}</div></div></div>`).join('')
+    + `<div class="ev"><div class="dot" style="background:var(--gold-dark)"></div><div class="ec"><div class="et">Cotización entregada</div><div class="ed">${r.procedimiento} · ${money0(r.monto)} — ${r.fecha||''}</div></div></div>`;
+  document.getElementById('exp').innerHTML=`
+    <div class="exp-hd"><button class="back" onclick="closeExp()">←</button><div class="t">Expediente 360</div></div>
+    <div class="exp-body">
+      <div class="exp-name">${r.paciente}</div>
+      <div class="exp-sub">${r.telefono||''}${r.email?' · '+r.email:''}</div>
+      <div class="exp-badges">${estadoBadge(r.estado)}${etapaBadge}${r.asesora?`<span class="chip">👤 ${r.asesora}</span>`:'<span class="chip" style="color:var(--amber)">Sin asignar</span>'}</div>
+      <div class="exp-actions">
+        <a class="btn wa" href="${r.whatsapp}" target="_blank" rel="noopener" style="flex:0 0 auto;padding:12px 22px">WhatsApp</a>
+        ${r.mensaje?`<button class="btn copy" onclick="copyMsg('${r.id}')" style="flex:0 0 auto;padding:12px 22px">⧉ Copiar mensaje</button>`:''}
+        ${r.pdf&&r.pdf!=='#'?`<a class="btn copy" href="${r.pdf}" target="_blank" rel="noopener" style="flex:0 0 auto;padding:12px 22px">📄 Cotización</a>`:''}
+      </div>
+
+      <div class="exp-sec">Información comercial</div>
+      <div class="exp-grid">
+        ${expField('Procedimiento',r.procedimiento)}
+        ${expField('Monto',money0(r.monto))}
+        ${expField('Etapa',r.etapa)}
+        ${expField('Estado',r.estado)}
+        ${expField('Motivo no-cierre',r.motivo)}
+        ${expField('Días desde cotización',r.dias)}
+        ${expField('Fecha cotización',r.fecha)}
+        ${expField('Asesora',r.asesora)}
+      </div>
+
+      <div class="exp-sec">Línea de tiempo</div>
+      <div class="tl">${tl}</div>
+
+      <div class="exp-sec">Notas</div>
+      <textarea class="notes" style="min-height:72px" placeholder="Notas del paciente…" onchange="setNotas('${r.id}',this.value)">${r.notas||''}</textarea>
+
+      <div class="exp-sec">Clínico · agenda</div>
+      <div class="exp-soon">🔗 Aquí aparecerán las citas y valoraciones cuando conectemos tu app de agenda.</div>
+
+      <div class="exp-sec">Cobros</div>
+      <div class="exp-soon">🔗 Aquí aparecerán anticipos y pagos cuando conectemos tu sistema de cobros.</div>
+    </div>`;
+}
+function demoActs(r){
+  if(!r) return [];
+  const a=[];
+  if(r.estado==='Cerrada') a.push({tipo:'Cierre',detalle:'Aceptó la cotización',usuario:r.asesora,fecha:'hoy · 10:24'});
+  if(r.motivo) a.push({tipo:'Motivo',detalle:'Motivo de no-cierre: '+r.motivo,usuario:r.asesora,fecha:'hace 2 días'});
+  if(r.asesora) a.push({tipo:'Asignación',detalle:'Tomó el prospecto',usuario:r.asesora,fecha:'hace 3 días'});
+  return a;
 }
 
 // ----- Helpers de tabla / alertas -----
@@ -711,7 +802,7 @@ function renderTable(rows){
     const msgFull=limpiar(r.mensaje); const msg=(msgFull||'—').replace(/"/g,'&quot;');
     return `<tr class="${al?'alertrow':''}">
       <td>${al?`<span class="alert-dot" title="${al}">⚠</span>`:''}</td>
-      <td><div class="pnm">${r.paciente}</div><div class="pproc">${r.procedimiento}</div></td>
+      <td><div class="pnm clickname" onclick="openExpediente('${r.id}')">${r.paciente}</div><div class="pproc">${r.procedimiento}</div></td>
       <td>${money(r.monto)}</td>
       <td>${r.dias}</td>
       <td>${estadoPillSm(r.estado)}</td>
@@ -767,7 +858,7 @@ function cardHTML(r,isDone){
     body=`<div class="msg" style="border-left-color:var(--muted)">📝 ${r.notas}</div>`;
   }
   return `<div class="card" style="border-left-color:${r.estado==='Vencida'?'var(--red)':r.estado==='Cerrada'?'var(--green)':libre?'var(--amber)':'var(--gold)'}">
-    <div class="top"><div><div class="nm">${r.paciente}</div><div class="proc">${r.procedimiento}</div></div>${estadoBadge(r.estado)}</div>
+    <div class="top"><div><div class="nm clickname" onclick="openExpediente('${r.id}')">${r.paciente}</div><div class="proc">${r.procedimiento}</div></div>${estadoBadge(r.estado)}</div>
     <div class="meta">${ownerChip(r)}<span class="chip">💰 <b>${money(r.monto)}</b></span><span class="chip">📅 <b>${r.dias}</b> días</span>${r.motivo?`<span class="chip">🎯 ${r.motivo}</span>`:''}${r.proximo&&!r.accionHoy?`<span class="chip">⏭ ${r.proximo}</span>`:''}</div>
     ${r.accionHoy?`<div class="accion">👉 ${r.accionHoy}</div>`:''}
     ${showMsg?`<div class="msg" id="msg-${r.id}">${limpiar(r.mensaje)}</div>`:''}
