@@ -208,6 +208,17 @@ table.grid tr.alertrow td{background:#fdf2f2}
 .kcard .kval{color:var(--green);font-weight:600}
 .kcard .kase{font-size:10.5px;color:var(--muted);margin-top:6px}
 .kcard select.kmove{width:100%;margin-top:8px;font-size:11px;padding:6px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg-soft);color:var(--soft);appearance:none}
+
+/* ----- CENTRO DE OPERACIÓN (Nivel 3) ----- */
+.opsec{margin-bottom:22px}
+.opsec-h{font-family:var(--serif);font-size:15px;font-weight:500;display:flex;align-items:center;gap:8px;margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
+.opsec-h .opcnt{margin-left:auto;font-family:var(--sans);font-size:11px;color:var(--muted);font-weight:400}
+.oprow{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:8px}
+.oprow .opinfo{flex:1;min-width:0}
+.oprow .opn{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oprow .opsub{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.oprow .opact{display:flex;gap:6px;flex-shrink:0}
+.ico-btn.okb{background:var(--green);color:#fff;border-color:var(--green)}
 </style>
 </head>
 <body>
@@ -502,6 +513,7 @@ function render(){
 
   if(state.tab==='panel'){ document.getElementById('alertBar').innerHTML=''; renderPanel(all); return; }
   if(state.tab==='pipeline'){ document.getElementById('alertBar').innerHTML=''; renderKanban(all); return; }
+  if(state.tab==='dia'){ document.getElementById('alertBar').innerHTML=''; renderOperacion(all); return; }
 
   let rows;
   if(state.tab==='dia') rows=hoy;
@@ -638,6 +650,39 @@ async function moverEtapa(id,etapa){
   if(!r.asesora) r.asesora=state.asesora||state.nombre;
   toast('Movido a '+etapa); render();
   await apiPost({action:'setEtapa',id,etapa});
+}
+
+// ============ CENTRO DE OPERACIÓN (Nivel 3) ============
+function esFechaFutura(s){ if(!s||s==='Hoy') return false; const d=new Date(s); if(isNaN(d)) return false; const t=new Date(); t.setHours(0,0,0,0); return d>t; }
+function opRow(r){
+  const mia=esMia(r), libre=esLibre(r), done=getDone().includes(r.id);
+  return `<div class="oprow">
+    <div class="opinfo">
+      <div class="opn">${r.paciente}</div>
+      <div class="opsub">${r.procedimiento} · ${money0(r.monto)} · ${r.dias}d${r.motivo?' · '+r.motivo:''}${r.etapa?' · '+r.etapa:''}</div>
+    </div>
+    <div class="opact">
+      <a class="ico-btn wa" href="${r.whatsapp}" target="_blank" rel="noopener" title="WhatsApp">💬</a>
+      ${r.mensaje?`<button class="ico-btn" onclick="copyMsg('${r.id}')" title="Copiar mensaje">📋</button>`:''}
+      ${(mia||libre)?`<button class="ico-btn ${done?'okb':''}" onclick="marcar('${r.id}')" title="Marcar contactado">✓</button>`:`<button class="ico-btn" onclick="tomar('${r.id}')" title="Tomar">✋</button>`}
+    </div>
+  </div>`;
+}
+function renderOperacion(all){
+  const mine = all.filter(esMia);
+  const venc = mine.filter(r=>r.estado==='Vencida');
+  const hoy  = mine.filter(r=>r.accionHoy && r.estado==='En seguimiento');
+  const prox = mine.filter(r=> r.estado==='En seguimiento' && !r.accionHoy && esFechaFutura(r.proximo)).sort((a,b)=> String(a.proximo)>String(b.proximo)?1:-1);
+  const sinClasif = mine.filter(r=> r.estado==='En seguimiento' && !r.motivo);
+  const pool = all.filter(r=> esLibre(r) && (r.estado==='En seguimiento'||r.estado==='Vencida'));
+  const sec=(title,icon,items,color)=> items.length? `<div class="opsec"><div class="opsec-h" style="color:${color||'var(--txt)'}">${icon} ${title}<span class="opcnt">${items.length} · ${money0(items.reduce((a,r)=>a+(+r.monto||0),0))}</span></div>${items.map(opRow).join('')}</div>`:'';
+  let html = sec('Urgente · vencidos','🔴',venc,'var(--red)')
+    + sec('Por contactar hoy','☀',hoy,'var(--gold-dark)')
+    + sec('Próximos contactos','⏭',prox)
+    + sec('Por clasificar (falta motivo)','🎯',sinClasif)
+    + sec('Oportunidades en el pool','◎',pool,'var(--amber)');
+  if(!html.trim()) html = `<div class="state"><div class="ic">🎉</div><h3>Bandeja al día</h3><p>No tienes pendientes ahora mismo. Buen trabajo.</p></div>`;
+  document.getElementById('list').innerHTML='<div style="padding:12px 18px 24px">'+html+'</div>';
 }
 
 // ----- Helpers de tabla / alertas -----
