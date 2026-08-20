@@ -247,12 +247,17 @@ table.grid tr.alertrow td{background:#fdf2f2}
 .tl .ed{font-size:11.5px;color:var(--muted);margin-top:1px}
 .exp-soon{background:var(--bg-soft);border:1px dashed var(--line);border-radius:var(--radius-sm);padding:16px;color:var(--muted);font-size:12.5px;text-align:center}
 
-/* ----- BARRAS DE NAVEGACIÓN visibles (Windows) ----- */
-.kanban,.kcol-body,.tablewrap{scrollbar-width:auto;scrollbar-color:#c9b48f transparent}
-.kanban::-webkit-scrollbar,.kcol-body::-webkit-scrollbar,.tablewrap::-webkit-scrollbar{width:12px;height:12px}
-.kanban::-webkit-scrollbar-track,.kcol-body::-webkit-scrollbar-track,.tablewrap::-webkit-scrollbar-track{background:var(--bg-soft);border-radius:8px}
-.kanban::-webkit-scrollbar-thumb,.kcol-body::-webkit-scrollbar-thumb,.tablewrap::-webkit-scrollbar-thumb{background:#c9b48f;border-radius:8px;border:3px solid var(--bg-soft);background-clip:content-box}
-.kanban::-webkit-scrollbar-thumb:hover,.kcol-body::-webkit-scrollbar-thumb:hover,.tablewrap::-webkit-scrollbar-thumb:hover{background:var(--gold-dark);background-clip:content-box}
+/* ----- BARRAS DE NAVEGACIÓN visibles (Windows/Mac) ----- */
+.kanban,.kcol-body,.tablewrap{scrollbar-width:auto;scrollbar-color:#8e7456 #e0d6c4}
+.kanban::-webkit-scrollbar,.kcol-body::-webkit-scrollbar,.tablewrap::-webkit-scrollbar{width:15px;height:15px;-webkit-appearance:none}
+.kanban::-webkit-scrollbar-track,.kcol-body::-webkit-scrollbar-track,.tablewrap::-webkit-scrollbar-track{background:#e0d6c4;border-radius:8px}
+.kanban::-webkit-scrollbar-thumb,.kcol-body::-webkit-scrollbar-thumb,.tablewrap::-webkit-scrollbar-thumb{background:#8e7456;border-radius:8px;min-height:40px;min-width:40px;border:2px solid #e0d6c4}
+.kanban::-webkit-scrollbar-thumb:hover,.kcol-body::-webkit-scrollbar-thumb:hover,.tablewrap::-webkit-scrollbar-thumb:hover{background:#6f5942}
+.kanban{scroll-behavior:smooth}
+.kbar{display:flex;align-items:center;gap:10px;padding:10px 18px 0}
+.kbar button{background:var(--black);color:#fff;border:none;border-radius:8px;width:40px;height:36px;font-size:16px;cursor:pointer;flex-shrink:0}
+.kbar button:hover{background:var(--gold-dark)}
+.kbar span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.12em}
 .kcol{position:relative}
 .kcard{position:relative}
 .kdel{position:absolute;top:5px;right:6px;background:none;border:none;color:var(--faint);font-size:12px;cursor:pointer;line-height:1;padding:2px}
@@ -753,7 +758,7 @@ function renderKanban(all){
     const items = all.filter(r => (r.etapa||'Presupuesto')===st);
     return {st:st, items:items};
   });
-  document.getElementById('list').innerHTML = `<div class="kanban">`+ cols.map(function(col){
+  document.getElementById('list').innerHTML = `<div class="kbar"><button onclick="kscroll(-1)" title="Anterior">◀</button><span>Desliza el tablero</span><button onclick="kscroll(1)" title="Siguiente">▶</button></div><div class="kanban" id="kanbanBoard">`+ cols.map(function(col){
     const sum = col.items.reduce((a,r)=>a+(+r.monto||0),0);
     return `<div class="kcol" data-stage="${col.st}" ondragover="kDragOver(event,this)" ondragleave="this.classList.remove('drag')" ondrop="kDrop(event,'${col.st}',this)">
       <div class="kcol-h"><div class="kt">${col.st}<span class="cnt">${col.items.length}</span></div><div class="ksum">${money0(sum)}</div></div>
@@ -761,6 +766,7 @@ function renderKanban(all){
     </div>`;
   }).join('') + `</div>`;
 }
+function kscroll(d){ const b=document.getElementById('kanbanBoard'); if(b) b.scrollBy({left:d*330,behavior:'smooth'}); }
 function kcard(r){
   const tags=parseTags(r.etiquetas);
   return `<div class="kcard" draggable="true" ondragstart="kDragStart(event,'${r.id}')">
