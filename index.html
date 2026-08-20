@@ -538,6 +538,7 @@ function setTab(t){
   const hero=document.querySelector('.hero'), kpis=document.querySelector('.kpis');
   if(hero) hero.style.display=soloPipe?'none':'';
   if(kpis) kpis.style.display=soloPipe?'none':'';
+  if(soloPipe) window.scrollTo(0,0);
   render();
 }
 function estadoBadge(e){
@@ -769,8 +770,15 @@ function renderKanban(all){
       <div class="kcol-body">${col.items.map(kcard).join('')||'<div style="color:var(--faint);font-size:11px;text-align:center;padding:12px">—</div>'}</div>
     </div>`;
   }).join('') + `</div>`;
+  requestAnimationFrame(fitKanban);
+}
+function fitKanban(){
+  const b=document.getElementById('kanbanBoard'); if(!b) return;
+  const top=b.getBoundingClientRect().top;
+  b.style.height=Math.max(300,(window.innerHeight - top - 118))+'px';
 }
 function kscroll(d){ const b=document.getElementById('kanbanBoard'); if(b) b.scrollBy({left:d*330,behavior:'smooth'}); }
+window.addEventListener('resize',function(){ if(state&&state.tab==='pipeline') fitKanban(); });
 function kcard(r){
   const tags=parseTags(r.etiquetas);
   return `<div class="kcard" draggable="true" ondragstart="kDragStart(event,'${r.id}')">
